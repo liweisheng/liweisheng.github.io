@@ -4,15 +4,22 @@
 <head>
   <meta charset="utf-8">
   
-  <title>Archives | Hexo</title>
+  <title>JDK并发包 - FutureTask | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="http://yoursite.com/archives/index.html">
+  <meta name="description" content="#1. FutureTaskFutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成Futu">
+<meta name="keywords" content="Java,JUC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JDK并发包 - FutureTask">
+<meta property="og:url" content="http://yoursite.com/2017/12/21/JDK并发包-FutureTask/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="#1. FutureTaskFutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成Futu">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/image/java/FutureTask.png">
+<meta property="og:updated_time" content="2017-12-21T06:36:34.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Hexo">
+<meta name="twitter:title" content="JDK并发包 - FutureTask">
+<meta name="twitter:description" content="#1. FutureTaskFutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成Futu">
+<meta name="twitter:image" content="http://yoursite.com/image/java/FutureTask.png">
   
     <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
@@ -64,78 +71,72 @@
   </div>
 </header>
     <div class="outer">
-      <section id="main">
-  
-  
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2017" class="archive-year">2017</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2017/12/21/JDK并发包-FutureTask/" class="archive-article-date">
-  <time datetime="2017-12-21T06:34:04.000Z" itemprop="datePublished">12月 21</time>
+      <section id="main"><article id="post-JDK并发包-FutureTask" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/12/21/JDK并发包-FutureTask/" class="article-date">
+  <time datetime="2017-12-21T06:34:04.000Z" itemprop="datePublished">2017-12-21</time>
 </a>
-      
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2017/12/21/JDK并发包-FutureTask/">JDK并发包 - FutureTask</a>
+    <h1 class="article-title" itemprop="name">
+      JDK并发包 - FutureTask
     </h1>
   
 
-    </header>
-  </div>
-</article>
-  
+      </header>
     
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2017/12/21/hello-world/" class="archive-article-date">
-  <time datetime="2017-12-21T06:32:43.000Z" itemprop="datePublished">12月 21</time>
-</a>
+    <div class="article-entry" itemprop="articleBody">
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2017/12/21/hello-world/">Hello World</a>
-    </h1>
-  
+        <p>#1. FutureTask<br>FutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。<br>在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成FutureTask，然后返回。</p>
+<p>下图是FutureTask的状态变迁。<br><img src="/image/java/FutureTask.png" alt="FutureTask.png"></p>
+<p>其中圆圈表示用于表示FutureTask的状态，一开始的状态为New，进入红色状态表示此时调用get会立即返回（Normal则task正常结束返回结果，Exceptional表示任务异常结束，Interupting和Interuptted表示任务取消了）。</p>
+<p>无论任何方式结束，FutureTask结束时都会调用<code>finishCompletion</code>唤醒所有因为调用<code>get</code>阻塞的线程，然后调用<code>done</code>.</p>
+<p><code>done</code>方法是一个空方法，用于可以继承FutureTask实现done方法用于在任务结束时做一些处理。比如：</p>
+<ol>
+<li>guava的<code>ListenableFutureTask</code>能够在任务结束时调用listener从而实现异步非阻塞方式获取结果，这里listener的执行就是通过实现FutureTask # done在其中调用listener实现的。</li>
+</ol>
 
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2017/12/21/test/" class="archive-article-date">
-  <time datetime="2017-12-21T03:57:11.000Z" itemprop="datePublished">12月 21</time>
-</a>
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2017/12/21/test/">test</a>
-    </h1>
-  
+    </div>
+    <footer class="article-footer">
+      
+        <a data-url="http://yoursite.com/2017/12/21/JDK并发包-FutureTask/" data-id="cjbg46goc0000z5984nlft284" class="article-share-link" data-share="baidu" data-title="JDK并发包 - FutureTask">分享到</a>
+      
 
-    </header>
+      
+        <a href="http://yoursite.com/2017/12/21/JDK并发包-FutureTask/#ds-thread" class="article-comment-link">评论</a>
+      
+
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JUC/">JUC</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+
+    </footer>
   </div>
-</article>
+  
+    
+<nav id="article-nav">
   
   
-    </div></section>
+    <a href="/2017/12/21/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">上一篇</strong>
+      <div class="article-nav-title">Hello World</div>
+    </a>
   
+</nav>
 
+  
+</article>
+
+
+  <section id="comments">
+    <div id="ds-thread" class="ds-thread" data-thread-key="2017/12/21/JDK并发包-FutureTask/" data-title="JDK并发包 - FutureTask" data-url="http://yoursite.com/2017/12/21/JDK并发包-FutureTask/"></div>
+  </section>
 </section>
       
       <aside id="sidebar">
