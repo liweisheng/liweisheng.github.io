@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1.前言HBase的数据最终是以HFile的形式存储在HDFS中的，HBase中HFile有着自己的格式。一次memstore的flush会产生一个HFile，一次Compact会导致多个HFile合并成一个。本文主要讲述一下HFile文件格式，并介绍一些HBase中是如何读取，写出HFile的。通过HBase提供的读/写HFile的reader和writer工厂类，使用者可以直接从HFile文件">
+<meta name="keywords" content="HBase">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase学习 - HFile格式 以及 HFile的读写">
+<meta property="og:url" content="http://yoursite.com/2017/11/22/HBase学习-HFile格式-以及-HFile的读写/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1.前言HBase的数据最终是以HFile的形式存储在HDFS中的，HBase中HFile有着自己的格式。一次memstore的flush会产生一个HFile，一次Compact会导致多个HFile合并成一个。本文主要讲述一下HFile文件格式，并介绍一些HBase中是如何读取，写出HFile的。通过HBase提供的读/写HFile的reader和writer工厂类，使用者可以直接从HFile文件">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/image/hbase/hbase-hfile-format.png">
+<meta property="og:image" content="http://yoursite.com/image/hbase/hbase-hfile-writer.png">
+<meta property="og:image" content="http://yoursite.com/image/hbase/hbase-hfile-reader.png">
+<meta property="og:updated_time" content="2017-12-23T10:34:38.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase学习 - HFile格式 以及 HFile的读写">
+<meta name="twitter:description" content="1.前言HBase的数据最终是以HFile的形式存储在HDFS中的，HBase中HFile有着自己的格式。一次memstore的flush会产生一个HFile，一次Compact会导致多个HFile合并成一个。本文主要讲述一下HFile文件格式，并介绍一些HBase中是如何读取，写出HFile的。通过HBase提供的读/写HFile的reader和writer工厂类，使用者可以直接从HFile文件">
+<meta name="twitter:image" content="http://yoursite.com/image/hbase/hbase-hfile-format.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/11/22/HBase学习-HFile格式-以及-HFile的读写/"/>
+
+
+
+
+
+  <title>HBase学习 - HFile格式 以及 HFile的读写 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/22/HBase学习-HFile格式-以及-HFile的读写/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase学习 - HFile格式 以及 HFile的读写</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-22T18:28:48+08:00">
+                2017-11-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.前言"></a>1.前言</h1><p>HBase的数据最终是以HFile的形式存储在HDFS中的，HBase中HFile有着自己的格式。一次memstore的flush会产生一个HFile，一次Compact会导致多个HFile合并成一个。本文主要讲述一下HFile文件格式，并介绍一些HBase中是如何读取，写出HFile的。通过HBase提供的读/写HFile的reader和writer工厂类，使用者可以直接从HFile文件读取数据，从而绕过HBase提供的Scan、Get、Put等api。</p>
+<h1 id="2-HFile格式"><a href="#2-HFile格式" class="headerlink" title="2. HFile格式"></a>2. HFile格式</h1><p><img src="/image/hbase/hbase-hfile-format.png" alt="HFile格式.png"></p>
+<p>如上图所示，一个HFile内容是由一个个block组成的，按照block类型可分为：</p>
+<ol>
+<li>datablock 存放的key-value数据，一般一个datablock大小默认为64KB，</li>
+<li>data index block，其中存放的是datablock的index，索引可以是多级索引，中间索引，叶子索引一般会分布在HFile文件当中。root 索引位置见图中 root data-block-index</li>
+<li>bloom filter block, 保存了bloom过滤器的值</li>
+<li>meta data block，meta data block有多个，且连续分布，见图中meta data block</li>
+<li>meta data index，顾名思义</li>
+<li>file-info block, 其中记录了关于文件的一些信息，比如：HFile中最大的key、平均Key长度、HFile创建时间戳、data block使用的编码方式等等</li>
+<li>trailer block，每个HFile文件都会有的，对于不同版本的HFile（有V1，V2，V3三个版本，V2和V3相差不大）来说trailer长度可能不一样，但是同一个版本的所有HFile trailer的长度都是一样长的，并且trailer的最后4B一定是版本信息</li>
+</ol>
+<p>从上图可以看出在meta data block之前，datablock、bloom filter block,叶子／中间层data block索引是相间分布的，meta block之后就不会再有data block了</p>
+<h2 id="2-1-HFileBlock"><a href="#2-1-HFileBlock" class="headerlink" title="2.1 HFileBlock"></a>2.1 HFileBlock</h2><p>出了trailer以外，其他的数据都是一个个block，由类HFileBlock表示，每一个block里都有一个header记录了一些关于这个block的信息如下：</p>
+<ol>
+<li>BlockType, 8B, block所属类型</li>
+<li>onDiskSizeWithoutHeader，4B，当前block中出了header以外占住的磁盘大小（由于磁盘上的数据是经过编码和压缩的，所以和内存中大小是不一样的）</li>
+<li>uncompressedSizeWithoutHeader，4B，block数据未压缩前在内存中占据的大小，不包括header。</li>
+<li>prevBlockOffset， 8B，前一个block的offset</li>
+<li>checkSum type，1B，使用的校验和方法，CRC32之类的</li>
+<li>num of data bytes per check sum, 4B,多少个字节计算一次校验和<br>7 .onDiskDataSizeWithHeader，4B，当前block占据磁盘的总大小<br>以上每个block都会有固定的33Byte的header大小。</li>
+</ol>
+<p>header接下来就是真实的数据了。<br>数据后面就是checksum，由于是每多少个字节计算一次checksum，所以有多个checksum，每个checksum占据4Byte。</p>
+<h1 id="3-读写"><a href="#3-读写" class="headerlink" title="3.读写"></a>3.读写</h1><p>无论读写HFile，都可以通过<code>org.apache.hadoop.hbase.io.hfile.HFile</code>这类类提供的一些静态方法来实现</p>
+<h2 id="3-1-写"><a href="#3-1-写" class="headerlink" title="3.1 写"></a>3.1 写</h2><p>写HFile的类继承结构如下：<br><img src="/image/hbase/hbase-hfile-writer.png" alt="Writer.png"></p>
+<ol>
+<li>HFileWriterV2和HFileWriterV3分别 负责v2和v3版本的HFile的写.</li>
+</ol>
+<p>它们的实例则是通过对应的两个工厂类WriterFactoryV2和WriterFactoryV3。<br>类HFile提供了创建WriterFactoryXX的方法如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> WriterFactory <span class="title">getWriterFactory</span><span class="params">(Configuration conf,</span></span></span><br><span class="line"><span class="function"><span class="params">    CacheConfig cacheConf)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> version = getFormatVersion(conf);</span><br><span class="line">  <span class="keyword">switch</span> (version) &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="number">2</span>:</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> HFileWriterV2.WriterFactoryV2(conf, cacheConf);</span><br><span class="line">  <span class="keyword">case</span> <span class="number">3</span>:</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> HFileWriterV3.WriterFactoryV3(conf, cacheConf);</span><br><span class="line">  <span class="keyword">default</span>:</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Cannot create writer for HFile "</span> +</span><br><span class="line">        <span class="string">"format version "</span> + version);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>使用Writer至少需要在conf里面通过<code>hfile.format.version</code>指定version，且只能是2或3， 代表着v2和v3</p>
+<h2 id="3-2-读"><a href="#3-2-读" class="headerlink" title="3.2 读"></a>3.2 读</h2><p>Reader继承结构如下：</p>
+<p><img src="/image/hbase/hbase-hfile-reader.png" alt="Reader.png"></p>
+<p>同样有V2和V3两个版本的reader。<br>通过HFile的静态方法获取Reader如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Reader <span class="title">createReader</span><span class="params">(FileSystem fs, Path path,</span></span></span><br><span class="line"><span class="function"><span class="params">      FSDataInputStreamWrapper fsdis, <span class="keyword">long</span> size, CacheConfig cacheConf, Configuration conf)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> IOException</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">  <span class="keyword">public</span> <span class="keyword">static</span> Reader <span class="title">createReader</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">      FileSystem fs, Path path, CacheConfig cacheConf, Configuration conf)</span> <span class="keyword">throws</span> IOException</span></span><br></pre></td></tr></table></figure></p>
+<p>获取reader无需指定version，因为version信息已经在HFile的trailer里面了。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/12/03/Netty-使用Zero-Copy传输文件/" rel="prev" title="Netty 使用Zero Copy传输文件">
+                Netty 使用Zero Copy传输文件 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1.前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-HFile格式"><span class="nav-number">2.</span> <span class="nav-text">2. HFile格式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-HFileBlock"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 HFileBlock</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-读写"><span class="nav-number">3.</span> <span class="nav-text">3.读写</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-写"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 写</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-读"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 读</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

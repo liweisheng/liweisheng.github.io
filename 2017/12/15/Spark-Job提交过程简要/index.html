@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Java,JUC," />
+  <meta name="keywords" content="Spark," />
 
 
 
@@ -79,20 +79,20 @@
 
 
 
-<meta name="description" content="1. FutureTaskFutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成Futur">
-<meta name="keywords" content="Java,JUC">
+<meta name="description" content="1. 前言本文主要讲述一下我对spark任务调度过程的理解，必要的地方会配合源码。 2 . Spark任务调度2.1 基本概念 Job用户提交的spark应用程序中任何一个action操作（foreach,count…）都对应一个job的提交（提交job动作对应到源码SparkContext #runJob方），因此一个用户spark应用程序往往对应一到多个job。比如下面的例子：  123456">
+<meta name="keywords" content="Spark">
 <meta property="og:type" content="article">
-<meta property="og:title" content="JDK并发包 - FutureTask">
-<meta property="og:url" content="http://yoursite.com/2017/12/06/JDK并发包-FutureTask/index.html">
+<meta property="og:title" content="Spark Job提交过程简要">
+<meta property="og:url" content="http://yoursite.com/2017/12/15/Spark-Job提交过程简要/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="1. FutureTaskFutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成Futur">
+<meta property="og:description" content="1. 前言本文主要讲述一下我对spark任务调度过程的理解，必要的地方会配合源码。 2 . Spark任务调度2.1 基本概念 Job用户提交的spark应用程序中任何一个action操作（foreach,count…）都对应一个job的提交（提交job动作对应到源码SparkContext #runJob方），因此一个用户spark应用程序往往对应一到多个job。比如下面的例子：  123456">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:image" content="http://yoursite.com/image/java/FutureTask.png">
-<meta property="og:updated_time" content="2017-12-21T13:44:18.000Z">
+<meta property="og:image" content="http://yoursite.com/image/spark/Spark-Job-Submit.png">
+<meta property="og:updated_time" content="2017-12-23T10:22:11.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="JDK并发包 - FutureTask">
-<meta name="twitter:description" content="1. FutureTaskFutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成Futur">
-<meta name="twitter:image" content="http://yoursite.com/image/java/FutureTask.png">
+<meta name="twitter:title" content="Spark Job提交过程简要">
+<meta name="twitter:description" content="1. 前言本文主要讲述一下我对spark任务调度过程的理解，必要的地方会配合源码。 2 . Spark任务调度2.1 基本概念 Job用户提交的spark应用程序中任何一个action操作（foreach,count…）都对应一个job的提交（提交job动作对应到源码SparkContext #runJob方），因此一个用户spark应用程序往往对应一到多个job。比如下面的例子：  123456">
+<meta name="twitter:image" content="http://yoursite.com/image/spark/Spark-Job-Submit.png">
 
 
 
@@ -122,13 +122,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/12/06/JDK并发包-FutureTask/"/>
+  <link rel="canonical" href="http://yoursite.com/2017/12/15/Spark-Job提交过程简要/"/>
 
 
 
 
 
-  <title>JDK并发包 - FutureTask | Hexo</title>
+  <title>Spark Job提交过程简要 | Hexo</title>
   
 
 
@@ -235,7 +235,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/06/JDK并发包-FutureTask/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/15/Spark-Job提交过程简要/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Li Weisheng">
@@ -252,7 +252,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">JDK并发包 - FutureTask</h1>
+          <h1 class="post-title" itemprop="name headline">Spark Job提交过程简要</h1>
         
 
         <div class="post-meta">
@@ -264,8 +264,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-06T14:34:04+08:00">
-                2017-12-06
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-15T18:16:50+08:00">
+                2017-12-15
               </time>
             
 
@@ -302,14 +302,20 @@
       
 
       
-        <h1 id="1-FutureTask"><a href="#1-FutureTask" class="headerlink" title="1. FutureTask"></a>1. FutureTask</h1><p>FutureTask实现了Runnable和Future接口，它主要用于包装真实callable或runnable的task，其run方法内运行包装的task，同时实现的Future接口可获取包装的task的结果。<br>在JUC提供的线程池实现中，submit方法提交callable或runnable任务，返回future用于异步获取任务结果，实际实现就是将任务包装成FutureTask，然后返回。</p>
-<p>下图是FutureTask的状态变迁。<br><img src="/image/java/FutureTask.png" alt="FutureTask.png"></p>
-<p>其中圆圈表示用于表示FutureTask的状态，一开始的状态为New，进入红色状态表示此时调用get会立即返回（Normal则task正常结束返回结果，Exceptional表示任务异常结束，Interupting和Interuptted表示任务取消了）。</p>
-<p>无论任何方式结束，FutureTask结束时都会调用<code>finishCompletion</code>唤醒所有因为调用<code>get</code>阻塞的线程，然后调用<code>done</code>.</p>
-<p><code>done</code>方法是一个空方法，用于可以继承FutureTask实现done方法用于在任务结束时做一些处理。比如：</p>
-<ol>
-<li>guava的<code>ListenableFutureTask</code>能够在任务结束时调用listener从而实现异步非阻塞方式获取结果，这里listener的执行就是通过实现FutureTask # done在其中调用listener实现的。</li>
+        <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>本文主要讲述一下我对spark任务调度过程的理解，必要的地方会配合源码。</p>
+<h1 id="2-Spark任务调度"><a href="#2-Spark任务调度" class="headerlink" title="2 . Spark任务调度"></a>2 . Spark任务调度</h1><h2 id="2-1-基本概念"><a href="#2-1-基本概念" class="headerlink" title="2.1 基本概念"></a>2.1 基本概念</h2><ol>
+<li><p>Job<br>用户提交的spark应用程序中任何一个action操作（foreach,count…）都对应一个job的提交（提交job动作对应到源码SparkContext #runJob方），因此一个用户spark应用程序往往对应一到多个job。比如下面的例子：</p>
+ <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args:<span class="type">Array</span>[<span class="type">String</span>])&#123;</span><br><span class="line"> <span class="keyword">val</span> sparkConf = <span class="keyword">new</span> <span class="type">SparkConf</span>().setAppName(<span class="string">"Log Query"</span>)</span><br><span class="line"> <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>(sparkConf)</span><br><span class="line"> <span class="keyword">val</span> lines = sc.textFile(<span class="string">"README.md"</span>,<span class="number">3</span>)</span><br><span class="line"> <span class="keyword">val</span> words = lines.flatMap(line =&gt; line.split(<span class="string">" "</span>))</span><br><span class="line"> <span class="keyword">val</span> wordOne = words.map(word =&gt; (word,<span class="number">1</span>))</span><br><span class="line"> <span class="keyword">val</span> wordCount = wordOne.reduceByKey(_ + _,<span class="number">3</span>)</span><br><span class="line">  <span class="comment">// foreach是一个action，对应一个job</span></span><br><span class="line"> wordCount.foreach(println)</span><br><span class="line">  <span class="comment">// collect是一个action，对应一个job</span></span><br><span class="line"> <span class="keyword">val</span> resultAsArry = wordCount.collect() &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Stage<br>Job提交之后，首先会被划分为一到多个Stage，划分Stage的原因在于一个job中有些操作(Transformation)是可以连在一起在同一个线程里执行的，这些连在一起的操作就像一根管道一样，数据从顺着管道流下去就行(比如.map.filter就可以连在一起)，可是有些操作(shuffle操作，reduce，group等)会导致管道出现分支,数据不得不分流到不同管道，Stage的划分就以这中会导致分流(shuffle)的操作为分割，划分成不同的Stage，显然划分会导致Stage的依赖，上游Stage必须运行完，才能让下游Stage运行。Stage和Job一样是一种静态的东西，一个Stage里包含没有Shuffle依赖（也就是没有分流）的一连串RDD。真正提交运行的是Task。</p>
+</li>
+<li>Task<br>Task是依据Stage建立起来的，上面说Stage包含了一连串RDD，RDD是一种数据的抽象描述，对应物理数据是包含了n个分区数据的。每一个Task就处理一个分区数据，一个包含了n个分区的Stage就会创建出n个Task，只有这n个Task都执行成功了，这个Stage才算成功，然后才可以执行下游的Stage。</li>
+<li>TaskSet<br>TaskSet是task的集合，包含了同一个Stage中的部分或者全部task，每次提交的是TaskSet，然后根据TaskSet创建TaskSetManager，spark中TaskSetManager是任务调度器一个调度单元，当一个TaskSetManager被调度器调度到时，就会从TaskSetManager中拿若干个task去执行。task会失败重试，重试的那些task又会组成一个新的TaskSetManager去让调度器调度，因此，一个正在运行的Stage可能会有多个TaskSetManager正在等待调度。</li>
+<li>TaskSchedulerImpl<br>任务调度器，它按照一定的策略调度TaskSetManager，然后会从被调度到的TaskSetManager获取若干个task发送到Executor去执行。只要TaskSetManager中有task没有运行完，那么这个TaskSetManager还是会继续被调度。目前有两种调度策略：FIFO和Fair模式。</li>
+<li>CoarseGrainedSchedulerBackend<br>运行在driver端，可以当作是Rpc的一个端点，从任务调度器获取任务并发送到Executor上执行（LaunchTask），以及接收Executor汇报的Task运行状态信息（StatusUpdate）</li>
+<li>CoarseGrainedExecutorBackend<br>运行在Executor上，从CoarseGrainedSchedulerBackend上接收运行任务的请求（LaunchTask），任务运行结束后通过它向CoarseGrainedSchedulerBackend汇报任务状态(StatusUpdate).</li>
 </ol>
+<p>整个过程大致如下图：<br><img src="/image/spark/Spark-Job-Submit.png" alt="Job提交过程"></p>
 
       
     </div>
@@ -327,9 +333,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/Java/" rel="tag"># Java</a>
-          
-            <a href="/tags/JUC/" rel="tag"># JUC</a>
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
           
         </div>
       
@@ -342,8 +346,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/12/03/Netty-使用Zero-Copy传输文件/" rel="next" title="Netty 使用Zero Copy传输文件">
-                <i class="fa fa-chevron-left"></i> Netty 使用Zero Copy传输文件
+              <a href="/2017/12/09/MR任务提交Yarn运行之前的过程图/" rel="next" title="MR任务提交Yarn运行之前的过程图">
+                <i class="fa fa-chevron-left"></i> MR任务提交Yarn运行之前的过程图
               </a>
             
           </div>
@@ -351,10 +355,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2017/12/09/MR任务提交Yarn运行之前的过程图/" rel="prev" title="MR任务提交Yarn运行之前的过程图">
-                MR任务提交Yarn运行之前的过程图 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -479,7 +479,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-FutureTask"><span class="nav-number">1.</span> <span class="nav-text">1. FutureTask</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1. 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Spark任务调度"><span class="nav-number">2.</span> <span class="nav-text">2 . Spark任务调度</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-基本概念"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 基本概念</span></a></li></ol></li></ol></div>
             
 
           </div>

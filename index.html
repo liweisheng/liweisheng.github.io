@@ -5,7 +5,7 @@
   
 
 
-<html class="theme-next muse use-motion" lang="zh-CN">
+<html class="theme-next mist use-motion" lang="zh-Hans">
 <head>
   <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -79,13 +79,16 @@
 
 
 
+<meta name="description" content="不积跬步，无以至千里">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Hexo">
 <meta property="og:url" content="http://yoursite.com/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:locale" content="zh-CN">
+<meta property="og:description" content="不积跬步，无以至千里">
+<meta property="og:locale" content="zh-Hans">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hexo">
+<meta name="twitter:description" content="不积跬步，无以至千里">
 
 
 
@@ -93,7 +96,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '/',
-    scheme: 'Muse',
+    scheme: 'Mist',
     version: '5.1.3',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -101,7 +104,7 @@
     motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
     duoshuo: {
       userId: '0',
-      author: 'Author'
+      author: '博主'
     },
     algolia: {
       applicationID: '',
@@ -133,7 +136,7 @@
 
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
 
   
   
@@ -182,7 +185,7 @@
             
               <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
             
-            Startseite
+            首页
           </a>
         </li>
       
@@ -192,7 +195,7 @@
             
               <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
             
-            Archiv
+            归档
           </a>
         </li>
       
@@ -229,10 +232,263 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/15/Spark-Job提交过程简要/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/15/Spark-Job提交过程简要/" itemprop="url">Spark Job提交过程简要</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-15T18:16:50+08:00">
+                2017-12-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>本文主要讲述一下我对spark任务调度过程的理解，必要的地方会配合源码。</p>
+<h1 id="2-Spark任务调度"><a href="#2-Spark任务调度" class="headerlink" title="2 . Spark任务调度"></a>2 . Spark任务调度</h1><h2 id="2-1-基本概念"><a href="#2-1-基本概念" class="headerlink" title="2.1 基本概念"></a>2.1 基本概念</h2><ol>
+<li><p>Job<br>用户提交的spark应用程序中任何一个action操作（foreach,count…）都对应一个job的提交（提交job动作对应到源码SparkContext #runJob方），因此一个用户spark应用程序往往对应一到多个job。比如下面的例子：</p>
+ <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args:<span class="type">Array</span>[<span class="type">String</span>])&#123;</span><br><span class="line"> <span class="keyword">val</span> sparkConf = <span class="keyword">new</span> <span class="type">SparkConf</span>().setAppName(<span class="string">"Log Query"</span>)</span><br><span class="line"> <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>(sparkConf)</span><br><span class="line"> <span class="keyword">val</span> lines = sc.textFile(<span class="string">"README.md"</span>,<span class="number">3</span>)</span><br><span class="line"> <span class="keyword">val</span> words = lines.flatMap(line =&gt; line.split(<span class="string">" "</span>))</span><br><span class="line"> <span class="keyword">val</span> wordOne = words.map(word =&gt; (word,<span class="number">1</span>))</span><br><span class="line"> <span class="keyword">val</span> wordCount = wordOne.reduceByKey(_ + _,<span class="number">3</span>)</span><br><span class="line">  <span class="comment">// foreach是一个action，对应一个job</span></span><br><span class="line"> wordCount.foreach(println)</span><br><span class="line">  <span class="comment">// collect是一个action，对应一个job</span></span><br><span class="line"> <span class="keyword">val</span> resultAsArry = wordCount.collect() &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Stage<br>Job提交之后，首先会被划分为一到多个Stage，划分Stage的原因在于一个job中有些操作(Transformation)是可以连在一起在同一个线程里执行的，这些连在一起的操作就像一根管道一样，数据从顺着管道流下去就行(比如.map.filter就可以连在一起)，可是有些操作(shuffle操作，reduce，group等)会导致管道出现分支,数据不得不分流到不同管道，Stage的划分就以这中会导致分流(shuffle)的操作为分割，划分成不同的Stage，显然划分会导致Stage的依赖，上游Stage必须运行完，才能让下游Stage运行。Stage和Job一样是一种静态的东西，一个Stage里包含没有Shuffle依赖（也就是没有分流）的一连串RDD。真正提交运行的是Task。</p>
+</li>
+<li>Task<br>Task是依据Stage建立起来的，上面说Stage包含了一连串RDD，RDD是一种数据的抽象描述，对应物理数据是包含了n个分区数据的。每一个Task就处理一个分区数据，一个包含了n个分区的Stage就会创建出n个Task，只有这n个Task都执行成功了，这个Stage才算成功，然后才可以执行下游的Stage。</li>
+<li>TaskSet<br>TaskSet是task的集合，包含了同一个Stage中的部分或者全部task，每次提交的是TaskSet，然后根据TaskSet创建TaskSetManager，spark中TaskSetManager是任务调度器一个调度单元，当一个TaskSetManager被调度器调度到时，就会从TaskSetManager中拿若干个task去执行。task会失败重试，重试的那些task又会组成一个新的TaskSetManager去让调度器调度，因此，一个正在运行的Stage可能会有多个TaskSetManager正在等待调度。</li>
+<li>TaskSchedulerImpl<br>任务调度器，它按照一定的策略调度TaskSetManager，然后会从被调度到的TaskSetManager获取若干个task发送到Executor去执行。只要TaskSetManager中有task没有运行完，那么这个TaskSetManager还是会继续被调度。目前有两种调度策略：FIFO和Fair模式。</li>
+<li>CoarseGrainedSchedulerBackend<br>运行在driver端，可以当作是Rpc的一个端点，从任务调度器获取任务并发送到Executor上执行（LaunchTask），以及接收Executor汇报的Task运行状态信息（StatusUpdate）</li>
+<li>CoarseGrainedExecutorBackend<br>运行在Executor上，从CoarseGrainedSchedulerBackend上接收运行任务的请求（LaunchTask），任务运行结束后通过它向CoarseGrainedSchedulerBackend汇报任务状态(StatusUpdate).</li>
+</ol>
+<p>整个过程大致如下图：<br><img src="/image/spark/Spark-Job-Submit.png" alt="Job提交过程"></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/09/MR任务提交Yarn运行之前的过程图/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/09/MR任务提交Yarn运行之前的过程图/" itemprop="url">MR任务提交Yarn运行之前的过程图</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-09T18:23:00+08:00">
+                2017-12-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><img src="/image/hadoop/mr-before-yarn.png" alt="mr任务提交Yarn运行的过程"></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/06/JDK并发包-FutureTask/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="John Doe">
+      <meta itemprop="name" content="Li Weisheng">
       <meta itemprop="description" content="">
       <meta itemprop="image" content="/images/avatar.gif">
     </span>
@@ -258,9 +514,9 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               
-                <span class="post-meta-item-text">Veröffentlicht am</span>
+                <span class="post-meta-item-text">发表于</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-06T14:34:04+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-06T14:34:04+08:00">
                 2017-12-06
               </time>
             
@@ -343,6 +599,281 @@
 
 
     
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/03/Netty-使用Zero-Copy传输文件/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/03/Netty-使用Zero-Copy传输文件/" itemprop="url">Netty 使用Zero Copy传输文件</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-03T18:26:56+08:00">
+                2017-12-03
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-Zero-Copy传输"><a href="#1-Zero-Copy传输" class="headerlink" title="1. Zero Copy传输"></a>1. Zero Copy传输</h1><p>一般情况下，将服务器上的文件传输到客户端时，文件在服务端会经历如下copy过程：调用read方法从硬盘读文件到内核空间，从内核空间读到用户内存空间，然后调用socket的write方法，这时用户内存空间的文件数据又会进入到内存空间，然后发送到网卡经过网络传输。这一过程文件数据多次在用户空间和内核空间copy。linux上使用sendfile可避免这种copy，文件数据读到内核空间后直接从内核空间到网卡。</p>
+<p>Netty显然也是支持这种机制的，无需把文件读出来然后发送。使用方法如下。</p>
+<h1 id="2-netty-zero-copy传输文件"><a href="#2-netty-zero-copy传输文件" class="headerlink" title="2. netty zero copy传输文件"></a>2. netty zero copy传输文件</h1><p>这里假设是client端发送文件到server端，client端handler如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FileHandler</span> <span class="keyword">extends</span> <span class="title">ChannelOutboundHandlerAdapter</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">//假设msg是client端发送的文件名</span></span><br><span class="line">        String fileName = (String)msg;</span><br><span class="line">        <span class="comment">// 创建FileRegion，netty FileRegion使用了FileChannel # transferTo实现Zero Copy</span></span><br><span class="line">        FileRegion region = <span class="keyword">new</span> DefaultFileRegion(<span class="keyword">new</span> File(fileName),<span class="number">0</span>,<span class="number">1000</span>);</span><br><span class="line">        ctx.writeAndFlush(region);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/22/HBase学习-HFile格式-以及-HFile的读写/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/22/HBase学习-HFile格式-以及-HFile的读写/" itemprop="url">HBase学习 - HFile格式 以及 HFile的读写</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-22T18:28:48+08:00">
+                2017-11-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.前言"></a>1.前言</h1><p>HBase的数据最终是以HFile的形式存储在HDFS中的，HBase中HFile有着自己的格式。一次memstore的flush会产生一个HFile，一次Compact会导致多个HFile合并成一个。本文主要讲述一下HFile文件格式，并介绍一些HBase中是如何读取，写出HFile的。通过HBase提供的读/写HFile的reader和writer工厂类，使用者可以直接从HFile文件读取数据，从而绕过HBase提供的Scan、Get、Put等api。</p>
+<h1 id="2-HFile格式"><a href="#2-HFile格式" class="headerlink" title="2. HFile格式"></a>2. HFile格式</h1><p><img src="/image/hbase/hbase-hfile-format.png" alt="HFile格式.png"></p>
+<p>如上图所示，一个HFile内容是由一个个block组成的，按照block类型可分为：</p>
+<ol>
+<li>datablock 存放的key-value数据，一般一个datablock大小默认为64KB，</li>
+<li>data index block，其中存放的是datablock的index，索引可以是多级索引，中间索引，叶子索引一般会分布在HFile文件当中。root 索引位置见图中 root data-block-index</li>
+<li>bloom filter block, 保存了bloom过滤器的值</li>
+<li>meta data block，meta data block有多个，且连续分布，见图中meta data block</li>
+<li>meta data index，顾名思义</li>
+<li>file-info block, 其中记录了关于文件的一些信息，比如：HFile中最大的key、平均Key长度、HFile创建时间戳、data block使用的编码方式等等</li>
+<li>trailer block，每个HFile文件都会有的，对于不同版本的HFile（有V1，V2，V3三个版本，V2和V3相差不大）来说trailer长度可能不一样，但是同一个版本的所有HFile trailer的长度都是一样长的，并且trailer的最后4B一定是版本信息</li>
+</ol>
+<p>从上图可以看出在meta data block之前，datablock、bloom filter block,叶子／中间层data block索引是相间分布的，meta block之后就不会再有data block了</p>
+<h2 id="2-1-HFileBlock"><a href="#2-1-HFileBlock" class="headerlink" title="2.1 HFileBlock"></a>2.1 HFileBlock</h2><p>出了trailer以外，其他的数据都是一个个block，由类HFileBlock表示，每一个block里都有一个header记录了一些关于这个block的信息如下：</p>
+<ol>
+<li>BlockType, 8B, block所属类型</li>
+<li>onDiskSizeWithoutHeader，4B，当前block中出了header以外占住的磁盘大小（由于磁盘上的数据是经过编码和压缩的，所以和内存中大小是不一样的）</li>
+<li>uncompressedSizeWithoutHeader，4B，block数据未压缩前在内存中占据的大小，不包括header。</li>
+<li>prevBlockOffset， 8B，前一个block的offset</li>
+<li>checkSum type，1B，使用的校验和方法，CRC32之类的</li>
+<li>num of data bytes per check sum, 4B,多少个字节计算一次校验和<br>7 .onDiskDataSizeWithHeader，4B，当前block占据磁盘的总大小<br>以上每个block都会有固定的33Byte的header大小。</li>
+</ol>
+<p>header接下来就是真实的数据了。<br>数据后面就是checksum，由于是每多少个字节计算一次checksum，所以有多个checksum，每个checksum占据4Byte。</p>
+<h1 id="3-读写"><a href="#3-读写" class="headerlink" title="3.读写"></a>3.读写</h1><p>无论读写HFile，都可以通过<code>org.apache.hadoop.hbase.io.hfile.HFile</code>这类类提供的一些静态方法来实现</p>
+<h2 id="3-1-写"><a href="#3-1-写" class="headerlink" title="3.1 写"></a>3.1 写</h2><p>写HFile的类继承结构如下：<br><img src="/image/hbase/hbase-hfile-writer.png" alt="Writer.png"></p>
+<ol>
+<li>HFileWriterV2和HFileWriterV3分别 负责v2和v3版本的HFile的写.</li>
+</ol>
+<p>它们的实例则是通过对应的两个工厂类WriterFactoryV2和WriterFactoryV3。<br>类HFile提供了创建WriterFactoryXX的方法如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> WriterFactory <span class="title">getWriterFactory</span><span class="params">(Configuration conf,</span></span></span><br><span class="line"><span class="function"><span class="params">    CacheConfig cacheConf)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> version = getFormatVersion(conf);</span><br><span class="line">  <span class="keyword">switch</span> (version) &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="number">2</span>:</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> HFileWriterV2.WriterFactoryV2(conf, cacheConf);</span><br><span class="line">  <span class="keyword">case</span> <span class="number">3</span>:</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> HFileWriterV3.WriterFactoryV3(conf, cacheConf);</span><br><span class="line">  <span class="keyword">default</span>:</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Cannot create writer for HFile "</span> +</span><br><span class="line">        <span class="string">"format version "</span> + version);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>使用Writer至少需要在conf里面通过<code>hfile.format.version</code>指定version，且只能是2或3， 代表着v2和v3</p>
+<h2 id="3-2-读"><a href="#3-2-读" class="headerlink" title="3.2 读"></a>3.2 读</h2><p>Reader继承结构如下：</p>
+<p><img src="/image/hbase/hbase-hfile-reader.png" alt="Reader.png"></p>
+<p>同样有V2和V3两个版本的reader。<br>通过HFile的静态方法获取Reader如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Reader <span class="title">createReader</span><span class="params">(FileSystem fs, Path path,</span></span></span><br><span class="line"><span class="function"><span class="params">      FSDataInputStreamWrapper fsdis, <span class="keyword">long</span> size, CacheConfig cacheConf, Configuration conf)</span></span></span><br><span class="line"><span class="function">      <span class="keyword">throws</span> IOException</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">  <span class="keyword">public</span> <span class="keyword">static</span> Reader <span class="title">createReader</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">      FileSystem fs, Path path, CacheConfig cacheConf, Configuration conf)</span> <span class="keyword">throws</span> IOException</span></span><br></pre></td></tr></table></figure></p>
+<p>获取reader无需指定version，因为version信息已经在HFile的trailer里面了。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
   </section>
 
   
@@ -378,8 +909,8 @@
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
-              <p class="site-author-name" itemprop="name">John Doe</p>
-              <p class="site-description motion-element" itemprop="description"></p>
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
           </div>
 
           <nav class="site-state motion-element">
@@ -389,8 +920,8 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">1</span>
-                  <span class="site-state-item-name">Artikel</span>
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">日志</span>
                 </a>
               </div>
             
@@ -402,8 +933,8 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">2</span>
-                  <span class="site-state-item-name">Tags</span>
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
                 
               </div>
             
@@ -445,13 +976,13 @@
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
-  <span class="author" itemprop="copyrightHolder">John Doe</span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
 
   
 </div>
 
 
-  <div class="powered-by">Erstellt mit  <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
 
 
 
@@ -459,7 +990,7 @@
 
 
 
-  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.3</div>
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
 
 
 
