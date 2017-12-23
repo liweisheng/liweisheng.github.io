@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Spark,SparkSql," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1. 前言spark sql中使用DataFrame/DataSet来抽象表示结构化数据（关系数据库中的table），DataSet上支持和RDD类似的操作，和RDD上的操作生成新的RDD一样，DataSet上的操作生成新的DataSet来表示新的数据抽象。最终DataSet上的这些操作经过：logical plan -&amp;gt; analyzed logical plan -&amp;gt; optimi">
+<meta name="keywords" content="Spark,SparkSql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Sql 之 cacheTable">
+<meta property="og:url" content="http://yoursite.com/2017/11/12/Spark-Sql-之-cacheTable/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 前言spark sql中使用DataFrame/DataSet来抽象表示结构化数据（关系数据库中的table），DataSet上支持和RDD类似的操作，和RDD上的操作生成新的RDD一样，DataSet上的操作生成新的DataSet来表示新的数据抽象。最终DataSet上的这些操作经过：logical plan -&amp;gt; analyzed logical plan -&amp;gt; optimi">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2017-12-23T12:59:06.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark Sql 之 cacheTable">
+<meta name="twitter:description" content="1. 前言spark sql中使用DataFrame/DataSet来抽象表示结构化数据（关系数据库中的table），DataSet上支持和RDD类似的操作，和RDD上的操作生成新的RDD一样，DataSet上的操作生成新的DataSet来表示新的数据抽象。最终DataSet上的这些操作经过：logical plan -&amp;gt; analyzed logical plan -&amp;gt; optimi">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/11/12/Spark-Sql-之-cacheTable/"/>
+
+
+
+
+
+  <title>Spark Sql 之 cacheTable | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/12/Spark-Sql-之-cacheTable/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark Sql 之 cacheTable</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-12T20:58:24+08:00">
+                2017-11-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>spark sql中使用DataFrame/DataSet来抽象表示结构化数据（关系数据库中的table），DataSet上支持和RDD类似的操作，和RDD上的操作生成新的RDD一样，DataSet上的操作生成新的DataSet来表示新的数据抽象。最终DataSet上的这些操作经过：<br>logical plan -&gt; analyzed logical plan -&gt; optimized logical pan -&gt; physical plan -&gt; rdd dag的转化提交rdd 运行。这里plan（执行计划）就是DataSet上的转换操作，一个DataSet也就是对应一个logical plan生成的数据。</p>
+<p>cacheTable也就是缓存DataSet抽象表示的数据，也就是DataSet的plan生成的数据。</p>
+<h1 id="2-cacheTable"><a href="#2-cacheTable" class="headerlink" title="2. cacheTable"></a>2. cacheTable</h1><p>从上面的介绍可以看出DataSet只是数据的抽象，它描述了从数据源头开始经过怎样的执行计划（plan）才能得到当前的DataSet表示的真实数据，也就是必须等到执行计划提交spark job运行结束后才能得到数据。spark实现cacheTable时，并没有立即提交table（DataSet）对应的plan去运行，然后得到运行结果数据去缓存，而是采用一种lazy模式：最终在DataSet上调用一些触发任务提交的方法时（类似RDD的action操作），发现plan对应的抽象语法树中发现子树是表缓存plan，如果这个时候数据已经缓存了，直接使用缓存的数据，没有则触发缓存表的plan去执行，然后采用按列缓存的方式缓存数据。</p>
+<p>看看代码实现：<br>调用SQLContext # cacheTable(tableName : String)最终会走到下面的调用：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// query 即缓存的Dataset</span></span><br><span class="line"><span class="comment">// storageLevel 可以使用memory和disk缓存</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cacheQuery</span></span>(</span><br><span class="line">      query: <span class="type">Dataset</span>[_],</span><br><span class="line">      tableName: <span class="type">Option</span>[<span class="type">String</span>] = <span class="type">None</span>,</span><br><span class="line">      storageLevel: <span class="type">StorageLevel</span> = <span class="type">MEMORY_AND_DISK</span>): <span class="type">Unit</span> = writeLock &#123;</span><br><span class="line">    <span class="comment">// 拿到dataset的plan</span></span><br><span class="line">    <span class="keyword">val</span> planToCache = query.logicalPlan</span><br><span class="line">    <span class="keyword">if</span> (lookupCachedData(planToCache).nonEmpty) &#123;</span><br><span class="line">      logWarning(<span class="string">"Asked to cache already cached data."</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">val</span> sparkSession = query.sparkSession</span><br><span class="line">      <span class="comment">// 缓存是建立一个plan到InMemoryRelation的映射</span></span><br><span class="line">      cachedData.add(<span class="type">CachedData</span>(</span><br><span class="line">        planToCache,</span><br><span class="line">        <span class="type">InMemoryRelation</span>(</span><br><span class="line">          sparkSession.sessionState.conf.useCompression,</span><br><span class="line">          sparkSession.sessionState.conf.columnBatchSize,</span><br><span class="line">          storageLevel,</span><br><span class="line">          sparkSession.sessionState.executePlan(planToCache).executedPlan,</span><br><span class="line">          tableName)))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面InMemoryRelation是执行计划中一个节点，当出现<code>select * from table_a</code>语句（或者任何逻辑执行计划中有table_a出现），假设table_a被缓存了，那么这条语句生成的逻辑执行计划中，table_a对应的Relation节点会被执行计划优化器（optimizer）替换成InMemoryRelation。</p>
+<p>InMemoryRelation构造参数：</p>
+<ul>
+<li>columnBatchSize，后面会提到，table缓存是按列缓存的，然后数据又被按行分为一个个batch，这个参数用来控制一个batch里行数，通过配置项<code>spark.sql.inMemoryColumnarStorage.batchSize</code>设置，默认是10000行。</li>
+</ul>
+<p>下面是InMemoryRelation中和缓存相关的代码：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">buildBuffers</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">  <span class="comment">// output输出的是Seq[Attribute]，也就是表的schema，包含所有列名，列类型等信息</span></span><br><span class="line">  <span class="comment">// child也就是缓存的dataset对应的plan</span></span><br><span class="line">  <span class="keyword">val</span> output = child.output</span><br><span class="line">  <span class="comment">// 调用逻辑执行计划的execute返回的是RDD[InternalRow],返回RDD是整个执行计划分析的最后一步了，接下来就rdd的提交运行。那么这个rdd也就是dataset表示的数据的rdd形式的抽象。</span></span><br><span class="line"> <span class="comment">// 这里在rdd上调用mapPartitionsInternal，实现的是将遍历每一行数据，然后按列缓存。</span></span><br><span class="line"> <span class="comment">// 这个地方返回新的RDD的数据类型CachedBatch，CachedBatch是一个batch内若干行上的按列缓存。</span></span><br><span class="line">  <span class="keyword">val</span> cached = child.execute().mapPartitionsInternal &#123; rowIterator =&gt;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">Iterator</span>[<span class="type">CachedBatch</span>] &#123;</span><br><span class="line">      <span class="function"><span class="keyword">def</span> <span class="title">next</span></span>(): <span class="type">CachedBatch</span> = &#123;</span><br><span class="line">        <span class="comment">// 按照每一列的类型生成ColumnBuilder，内部使用数组来保存列数据</span></span><br><span class="line">        <span class="keyword">val</span> columnBuilders = output.map &#123; attribute =&gt;</span><br><span class="line">          <span class="type">ColumnBuilder</span>(attribute.dataType, batchSize, attribute.name, useCompression)</span><br><span class="line">        &#125;.toArray</span><br><span class="line"></span><br><span class="line">        <span class="keyword">var</span> rowCount = <span class="number">0</span></span><br><span class="line">        <span class="keyword">var</span> totalSize = <span class="number">0</span>L</span><br><span class="line">       <span class="comment">// 遍历每一行数据，控制当前batch行数 rowCount不超过batchSize，且同时batch中数据大小不超过MAX_BATCH_SIZE_IN_BYTE（4MB）</span></span><br><span class="line">        <span class="keyword">while</span> (rowIterator.hasNext &amp;&amp; rowCount &lt; batchSize</span><br><span class="line">          &amp;&amp; totalSize &lt; <span class="type">ColumnBuilder</span>.<span class="type">MAX_BATCH_SIZE_IN_BYTE</span>) &#123;</span><br><span class="line">          <span class="keyword">val</span> row = rowIterator.next()</span><br><span class="line"></span><br><span class="line">          assert(</span><br><span class="line">            row.numFields == columnBuilders.length,</span><br><span class="line">            <span class="string">s"Row column number mismatch, expected <span class="subst">$&#123;output.size&#125;</span> columns, "</span> +</span><br><span class="line">              <span class="string">s"but got <span class="subst">$&#123;row.numFields&#125;</span>."</span> +</span><br><span class="line">              <span class="string">s"\nRow content: <span class="subst">$row</span>"</span>)</span><br><span class="line"></span><br><span class="line">          <span class="keyword">var</span> i = <span class="number">0</span></span><br><span class="line">          totalSize = <span class="number">0</span></span><br><span class="line">          <span class="keyword">while</span> (i &lt; row.numFields) &#123;</span><br><span class="line">            columnBuilders(i).appendFrom(row, i)</span><br><span class="line">            totalSize += columnBuilders(i).columnStats.sizeInBytes</span><br><span class="line">            i += <span class="number">1</span></span><br><span class="line">          &#125;</span><br><span class="line">          rowCount += <span class="number">1</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        batchStats.add(totalSize)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">val</span> stats = <span class="type">InternalRow</span>.fromSeq(columnBuilders.map(_.columnStats.collectedStatistics)</span><br><span class="line">          .flatMap(_.values))</span><br><span class="line">        <span class="type">CachedBatch</span>(rowCount, columnBuilders.map &#123; builder =&gt;</span><br><span class="line">          <span class="type">JavaUtils</span>.bufferToArray(builder.build())</span><br><span class="line">        &#125;, stats)</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="function"><span class="keyword">def</span> <span class="title">hasNext</span></span>: <span class="type">Boolean</span> = rowIterator.hasNext</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 调用persist缓存RDD，所以cacheTable最终还是调用rdd的缓存接口完成缓存的</span></span><br><span class="line">  &#125;.persist(storageLevel)</span><br><span class="line"></span><br><span class="line">  cached.setName(</span><br><span class="line">    tableName.map(n =&gt; <span class="string">s"In-memory table <span class="subst">$n</span>"</span>)</span><br><span class="line">      .getOrElse(<span class="type">StringUtils</span>.abbreviate(child.toString, <span class="number">1024</span>)))</span><br><span class="line"></span><br><span class="line">  _cachedColumnBuffers = cached</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面代码可以看出cacheTable实际上还是通过cache rdd实现的。上面InMemoryRelation只是逻辑执行计划中一个节点，逻辑执行计划需要转换成物理执行计划，再转换成RDD dag才能执行，加上spark中RDD的计算是lazy模式的，所以上面的缓存rdd并没有提交运行，所以数据还没有缓存下来。</p>
+<p>真正缓存还得看InMemoryRelation所在的执行计划真正提交后，这个缓存rdd被计算，数据才会被缓存在内存中。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
+          
+            <a href="/tags/SparkSql/" rel="tag"># SparkSql</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/11/JUC之AbstractQueuedSynchronizer/" rel="next" title="JUC之AbstractQueuedSynchronizer">
+                <i class="fa fa-chevron-left"></i> JUC之AbstractQueuedSynchronizer
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/12/Spark内存管理/" rel="prev" title="Spark内存管理">
+                Spark内存管理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1. 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-cacheTable"><span class="nav-number">2.</span> <span class="nav-text">2. cacheTable</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

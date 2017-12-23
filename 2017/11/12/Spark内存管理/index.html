@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Spark," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1. 存储总体结构Spark存储结构分为两层：内存存储和磁盘存储，其中内存主要用作缓存以及任务计算时期数据存储，磁盘用在内存存储不足时使用。Executor和Driver都是委托BlockManager来管理存储以及Executor和Driver的通信（主要是数据传输和数据块信息的回报），BlockManager体系结结构如下图：  其中DiskStore实现数据块到磁盘的存取。 MemorySt">
+<meta name="keywords" content="Spark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark内存管理">
+<meta property="og:url" content="http://yoursite.com/2017/11/12/Spark内存管理/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 存储总体结构Spark存储结构分为两层：内存存储和磁盘存储，其中内存主要用作缓存以及任务计算时期数据存储，磁盘用在内存存储不足时使用。Executor和Driver都是委托BlockManager来管理存储以及Executor和Driver的通信（主要是数据传输和数据块信息的回报），BlockManager体系结结构如下图：  其中DiskStore实现数据块到磁盘的存取。 MemorySt">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/image/spark/spark-memory-arch.png">
+<meta property="og:image" content="http://yoursite.com/image/spark/spark-memory-static.png">
+<meta property="og:image" content="http://yoursite.com/image/spark/spark-memory-unified.png">
+<meta property="og:updated_time" content="2017-12-23T13:05:23.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark内存管理">
+<meta name="twitter:description" content="1. 存储总体结构Spark存储结构分为两层：内存存储和磁盘存储，其中内存主要用作缓存以及任务计算时期数据存储，磁盘用在内存存储不足时使用。Executor和Driver都是委托BlockManager来管理存储以及Executor和Driver的通信（主要是数据传输和数据块信息的回报），BlockManager体系结结构如下图：  其中DiskStore实现数据块到磁盘的存取。 MemorySt">
+<meta name="twitter:image" content="http://yoursite.com/image/spark/spark-memory-arch.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/11/12/Spark内存管理/"/>
+
+
+
+
+
+  <title>Spark内存管理 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/12/Spark内存管理/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark内存管理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-12T21:02:54+08:00">
+                2017-11-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="1-存储总体结构"><a href="#1-存储总体结构" class="headerlink" title="1. 存储总体结构"></a>1. 存储总体结构</h1><p>Spark存储结构分为两层：内存存储和磁盘存储，其中内存主要用作缓存以及任务计算时期数据存储，磁盘用在内存存储不足时使用。Executor和Driver都是委托BlockManager来管理存储以及Executor和Driver的通信（主要是数据传输和数据块信息的回报），BlockManager体系结结构如下图：<br><img src="/image/spark/spark-memory-arch.png" alt="存储体系结构"></p>
+<ol>
+<li>其中DiskStore实现数据块到磁盘的存取。</li>
+<li>MemoryStore负责数据块在内存中存储</li>
+</ol>
+<p>由于分配给Executor和Driver内存资源有限，需要小心的分配避免OOM的出现，同时也需要合理分分配避免内存资源的浪费，因此MemoryStore使用MemoryManager来管理内存，MemoryAllocator来分配内存。</p>
+<p>对内存的管理包含了对内存使用的监控和真正的内存分配。反应到上图中MemoryManager仅仅完成内存使用情况的监控，内存的分配则是通过MemoryAllocator实现的，本文主要介绍一下MemoryManager的使用</p>
+<h1 id="2-MemoryManager"><a href="#2-MemoryManager" class="headerlink" title="2. MemoryManager"></a>2. MemoryManager</h1><p>Spakr中内存包括堆上内存（On-heap）和堆外内存(Off-heap), MemoryManager管理着这两种内存的使用情况（总大小，使用多少，剩余多少之类的）。所以真正分配内存之前，还是需要通过memoryManager提供的接口判断是否有足够的剩余内存以供使用，然后才去通过memoryAllocator去执行分配操作。</p>
+<p>目前MemoryManager有两种实现方式：StaticMemoryManager，UnifiedMemoryManager。UnifiedMemoryManager是1.6后增加的，默认会使用这种方式。</p>
+<blockquote>
+<p>用过配置spark.memory.useLegacyMode=true 使用StaticMemoryManager</p>
+</blockquote>
+<p>不管哪种方式，堆上内存和堆外内存都被划分为execution memory和storage memory</p>
+<ol>
+<li>execution memory主要用于计算，例如shuffle过程中从上游分区fetch过来的数据就是临时存储在execution memory中，以方便快速的做reduce操作等。</li>
+<li>storage memory用户缓存数据，例如RDD # cache的调用就是将rdd的数据缓存在内存中重复使用</li>
+</ol>
+<p>storage memory还分出一块叫着unroll memory的块，原因是spark中数据可以是序列化的数据，当需要将序列化的数据存到内存中时，通过iterator一条条取出反序列化后的数据过程就是unroll， 由于不知道会有多少数据，所以这个过程是内存使用是逐渐增长的，这部分动态变化的内存就是unroll memory</p>
+<h2 id="2-1-StaticMemoryManager"><a href="#2-1-StaticMemoryManager" class="headerlink" title="2.1 StaticMemoryManager"></a>2.1 StaticMemoryManager</h2><p>内存 结构如下：</p>
+<p><img src="/image/spark/spark-memory-static.png" alt="StaticMemoryManager内存划分"></p>
+<ol>
+<li>execution mem占用比例由<code>spark.shuffle.memoryFraction</code>控制默认20%</li>
+<li>execution mem中safty mem是可用于计算的内存，由<code>spark.shuffle.safetyFraction</code>设置，默认80%。留一个安全内存区的原因可能是内存使用大小的计算不是一个精确值，留有余地可以避免一个可能很大的对象放进去之后导致内存不够。所有如果execution memory绝对值很大的话，理论上safty mem的比例可以设置到高一点。</li>
+<li>storage mem通过<code>spark.storage.memoryFraction</code>设置比例，默认是60</li>
+<li>storage mem同样有一个安全使用比例，通过<code>spark.storage.safetyFraction</code>设置，默认是90。当storage mem的绝对大小很大时，也可以适当提高这个安全比例</li>
+<li>storage mem中有一部分留作unroll内存，通过<code>spark.storage.unrollFraction</code>设置比例。</li>
+</ol>
+<p>使用StaticMemoryManager时不能使用堆外内存。</p>
+<h2 id="2-2-UnifiedMemoryManager"><a href="#2-2-UnifiedMemoryManager" class="headerlink" title="2.2 UnifiedMemoryManager"></a>2.2 UnifiedMemoryManager</h2><p>这是spark 1.6之后新引入的内存管理方式，也是当前默认的方式。在StaticmemoryManager中，storage memory和execution memory有很明确的界限，互相之间不能借用，在execution memory不够时，如果 storage memory存在空闲内存也不能临时借用，UnifiedMemoryManager为解决这种问题而出现。此外，UnifiedMemoryManager引入了对堆外内存的管理。</p>
+<p>UnifiedMemoryManager的内存结构如下（下图只是on-heap内存划分，off-heap有些不一样）</p>
+<p><img src="/image/spark/spark-memory-unified.png" alt="UnifiedMemoryManager内存结构"></p>
+<ol>
+<li>reserved mem是预留内存，用作spark execution &amp; storage以外的java对象的分配，默认大小是300M，不可改变. 同时要求整个堆区内存大小大于 1.5 * 300M.</li>
+<li>除去reserved mem以外都是用于spark 的storage&amp;execution内存（下文称usable mem）， 但是实际实现中storage &amp; execution 内存被设置成usable mem的60%（由<code>spark.memory.fraction</code>设置），留有余地可能原因应该和StaticMemoryManager中的saftyFraction一样。</li>
+<li>然后就是storage &amp; execution memory被平分给storage 和execution(可以通过<code>spark.memory.storageFraction</code>去调节)。</li>
+</ol>
+<p>UnifiedMemoryManager在管理内存使用中，execution和storage在不够的情况下可以向对对方借用内存，因此它们所占的比例是动态变化的。</p>
+<p><strong>off-heap 内存</strong><br>堆外内存大小通过<code>spark.memory.offHeap.size</code>设置（默认是0），由于是对外内存，因此不需要预留内存给普通的对象分配，所以整个堆外内存用于storage &amp; execution, 比例同样通过<code>spark.memory.storageFraction</code>去调节, 和堆上内存一样，堆外storage和execution是可以相互借用的。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/12/Spark-Sql-之-cacheTable/" rel="next" title="Spark Sql 之 cacheTable">
+                <i class="fa fa-chevron-left"></i> Spark Sql 之 cacheTable
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/15/spark如何只在map端做完成reduce的工作/" rel="prev" title="spark如何只在map端做完成reduce的工作">
+                spark如何只在map端做完成reduce的工作 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-存储总体结构"><span class="nav-number">1.</span> <span class="nav-text">1. 存储总体结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-MemoryManager"><span class="nav-number">2.</span> <span class="nav-text">2. MemoryManager</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-StaticMemoryManager"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 StaticMemoryManager</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-UnifiedMemoryManager"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 UnifiedMemoryManager</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Spark,Spark Streaming," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1. 前言Spark Streaming在处理不断流入的数据时通过每间隔一段时间(batch interval)将这段时间内的流入的数据积累为一个batch，然后以这个batch内的数据作为job DAG的输入rdd提交新的job运行。当一个batch的的处理时间大于batch interval时，意味着数据处理速度跟不上数据接收速度，此时在数据接收端（即Receiver一般数据接收端都运行在ex">
+<meta name="keywords" content="Spark,Spark Streaming">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Streaming(4) - 反压">
+<meta property="og:url" content="http://yoursite.com/2017/10/26/Spark-Streaming-4-反压/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 前言Spark Streaming在处理不断流入的数据时通过每间隔一段时间(batch interval)将这段时间内的流入的数据积累为一个batch，然后以这个batch内的数据作为job DAG的输入rdd提交新的job运行。当一个batch的的处理时间大于batch interval时，意味着数据处理速度跟不上数据接收速度，此时在数据接收端（即Receiver一般数据接收端都运行在ex">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2017-12-23T13:13:23.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark Streaming(4) - 反压">
+<meta name="twitter:description" content="1. 前言Spark Streaming在处理不断流入的数据时通过每间隔一段时间(batch interval)将这段时间内的流入的数据积累为一个batch，然后以这个batch内的数据作为job DAG的输入rdd提交新的job运行。当一个batch的的处理时间大于batch interval时，意味着数据处理速度跟不上数据接收速度，此时在数据接收端（即Receiver一般数据接收端都运行在ex">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/10/26/Spark-Streaming-4-反压/"/>
+
+
+
+
+
+  <title>Spark Streaming(4) - 反压 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/26/Spark-Streaming-4-反压/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark Streaming(4) - 反压</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-26T21:12:12+08:00">
+                2017-10-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h2><p>Spark Streaming在处理不断流入的数据时通过每间隔一段时间(batch interval)将这段时间内的流入的数据积累为一个batch，然后以这个batch内的数据作为job DAG的输入rdd提交新的job运行。当一个batch的的处理时间大于batch interval时，意味着数据处理速度跟不上数据接收速度，此时在数据接收端（即Receiver一般数据接收端都运行在executor上）就会积累数据，而数据是通过BlockManager管理的，如果数据存储采取MEMORY_ONLY模式就会导致OOM，采取MEMORY_AND_DISK多余的数据保存到磁盘上反而会增加数据读取时间。</p>
+<p>说到这里，反压实际就是一种根据当前系统的处理能力来动态调节接收数据速率的功能。</p>
+<h2 id="2-反压"><a href="#2-反压" class="headerlink" title="2. 反压"></a>2. 反压</h2><p>前言中提到数据接收端Receiver，可以参考文章<a href="http://www.jianshu.com/p/323e8f7d84d10" target="_blank" rel="noopener">Spark stream receiver</a>,简单说就是stream job运行期间会有一个或者多个Receiver运行在Executor上专门接收数据，并以batch interval为时间间隔将流式数据分割为一个个batch,然后以一个batch的数据启动job。但是stream job中Receiver并不是必然存在的，例外的情况是当数据源是kafka时，spark内置了一种叫<code>DirectKafkaInputDStream</code>的输入源（可以通过<code>KafkaUtils.createDirectStream(...)</code>创建），这种类型的InputDStream(输入源会实现这个类)没有Receiver。对于那些带Receiver的InputDStream实现类，当从InputDStream创建RDD时，源头RDD中的数据就是Receiver接收的数据，而从<code>DirectKafkaInputDStream</code>创建RDD时，数据实际上还没有从kafka读取过来，这个时候的RDD只包含了kafka的topic以及offset信息，等到rdd对应的task运行时才从kafka中获取数据。</p>
+<p>由于存在有Receiver和没有两种情况，实际上反压的实现也不一样。有Receiver时控制Receiver接收数据的速率就可以了，没有Receiver的<code>DirectKafkaInputDStream</code>时的实现会在后文单独提一下。<br><strong>附</strong><br>关于spark stream的原理可以参考：</p>
+<ol>
+<li><a href="http://www.jianshu.com/p/b3b7cc54b352" target="_blank" rel="noopener">Spark Streaming(1) - 基本原理</a></li>
+<li><a href="http://www.jianshu.com/p/8a28a711400a" target="_blank" rel="noopener">Spark Streaming(2) - JobScheduler、JobGenerator</a></li>
+<li><a href="http://www.jianshu.com/p/323e8f7d84d1" target="_blank" rel="noopener">Spark Streaming(3) - Receiver和ReceiverTacker</a><h3 id="2-1-开启反压"><a href="#2-1-开启反压" class="headerlink" title="2.1 开启反压"></a>2.1 开启反压</h3>指定配置<code>spark.streaming.backpressure.enabled</code>为true即可开启反压。<h3 id="2-2-有Receiver时反压原理"><a href="#2-2-有Receiver时反压原理" class="headerlink" title="2.2 有Receiver时反压原理"></a>2.2 有Receiver时反压原理</h3>反压的原理是根据之前系统的处理能力来调节未来系统接收数据速率，它的过程是下面这样的：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">stream (stream id标志)里所有job完成后</span><br><span class="line">-&gt; 反馈运行信息(包括，开始结束时间、处理本次处理记录数等信息) 给JobScheduler</span><br><span class="line">   -&gt; JobScheduler将信息交给RateController(通过一个job成功事件，下文会说到) ，RateController根据反馈信息计算接下来应该控制住Receiver接收多少条数据 </span><br><span class="line">      -&gt; RateController委托JobScheduler的receiverTracker将的计算结果通知给所有在Executor上运行的Receiver </span><br><span class="line">          -&gt; Receiever控制接收数据速率</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>上面过程中JobScheduler处在核心的位置，由它来负责协调，接下来分别讲述RateController，以及Recceiver是如何控制速率的。</p>
+<h4 id="2-2-1-RateController"><a href="#2-2-1-RateController" class="headerlink" title="2.2.1 RateController"></a>2.2.1 RateController</h4><p>RateController实现了<code>StreamingListener</code>, 它作为JobScheduler的lister，监听这个stream job的提交，开始运行，以及完成。其实它只关心<code>StreamingListenerBatchCompleted</code>事件的发生(该事件表示任务成功执行)，这个事件包含了如下信息：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">BatchInfo</span>(<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">    batchTime: <span class="type">Time</span>,   </span></span></span><br><span class="line"><span class="class"><span class="params">    streamIdToInputInfo: <span class="type">Map</span>[<span class="type">Int</span>, <span class="type">StreamInputInfo</span>],</span></span></span><br><span class="line"><span class="class"><span class="params">    submissionTime: <span class="type">Long</span>,</span></span></span><br><span class="line"><span class="class"><span class="params">    processingStartTime: <span class="type">Option</span>[<span class="type">Long</span>],</span></span></span><br><span class="line"><span class="class"><span class="params">    processingEndTime: <span class="type">Option</span>[<span class="type">Long</span>],</span></span></span><br><span class="line"><span class="class"><span class="params">    outputOperationInfos: <span class="type">Map</span>[<span class="type">Int</span>, <span class="type">OutputOperationInfo</span>]</span></span></span><br><span class="line"><span class="class"><span class="params">  </span>)</span></span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>RateController从何而来？<br>RateContoller 是InputDStream的成员，并在子类<code>ReceiverInputDStream</code>中初始化了具体的实例，如下：<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">ReceiverInputDStream</span> </span>&#123;</span><br><span class="line"><span class="keyword">override</span> <span class="keyword">protected</span>[streaming] <span class="keyword">val</span> rateController: <span class="type">Option</span>[<span class="type">RateController</span>] = &#123;</span><br><span class="line">    <span class="comment">// 开启反压的情况下创建了了ReceiverRateController</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="type">RateController</span>.isBackPressureEnabled(ssc.conf)) &#123;</span><br><span class="line">      <span class="type">Some</span>(<span class="keyword">new</span> <span class="type">ReceiverRateController</span>(id, <span class="type">RateEstimator</span>.create(ssc.conf, ssc.graph.batchDuration)))</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="type">None</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>本节中接下来关注<code>ReceiverRateController</code>的实现。</p>
+<ol>
+<li>RateController工作原理<br>上面说到RateController实现了<code>StreamingListener</code>，并且只关注<code>StreamingListenerBatchCompleted</code>，该事件发生时，会调用RateController # onBatchCompleted方法，方法体如下：<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">onBatchCompleted</span></span>(batchCompleted: <span class="type">StreamingListenerBatchCompleted</span>) &#123;</span><br><span class="line">    <span class="keyword">val</span> elements = batchCompleted.batchInfo.streamIdToInputInfo</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">      processingEnd &lt;- batchCompleted.batchInfo.processingEndTime</span><br><span class="line">      workDelay &lt;- batchCompleted.batchInfo.processingDelay</span><br><span class="line">      waitDelay &lt;- batchCompleted.batchInfo.schedulingDelay</span><br><span class="line">      elems &lt;- elements.get(streamUID).map(_.numRecords)</span><br><span class="line">    &#125; computeAndPublish(processingEnd, elems, workDelay, waitDelay)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">上面方法拿到stream job结束时间processingEnd， job真实运行时间workDelay， job从提交到结束时间waitDelay， 本次job处理记录数elems，</span><br><span class="line">然后调用computeAndPublish计算，computeAndPublish方法如下：</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">computeAndPublish</span></span>(time: <span class="type">Long</span>, elems: <span class="type">Long</span>, workDelay: <span class="type">Long</span>, waitDelay: <span class="type">Long</span>): <span class="type">Unit</span> =</span><br><span class="line">    <span class="type">Future</span>[<span class="type">Unit</span>] &#123;</span><br><span class="line">     <span class="comment">// 使用rateEstimator来计算接下来的接收速率，</span></span><br><span class="line">      <span class="keyword">val</span> newRate = rateEstimator.compute(time, elems, workDelay, waitDelay)</span><br><span class="line">      newRate.foreach &#123; s =&gt;</span><br><span class="line">        rateLimit.set(s.toLong)</span><br><span class="line">        <span class="comment">// publish是一个抽象方法，也就是将计算出来的速率通知出处</span></span><br><span class="line">        publish(getLatestRate())</span><br><span class="line">      &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>下面是<code>ReceiverRateController</code>的publish的实现:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">publish</span></span>(rate: <span class="type">Long</span>): <span class="type">Unit</span> =</span><br><span class="line">     <span class="comment">// 通过JobScheduler的receiverTracker将计算出来的速率通知给所有的Receiver</span></span><br><span class="line">      ssc.scheduler.receiverTracker.sendRateUpdate(id, rate)</span><br></pre></td></tr></table></figure></p>
+<p><strong>附：ReceiverTracker</strong><br>这里顺带提一下ReceiverTracker中涉及的反压过程的成员或方法吧:<br>(这里涉及到spark rpc，可以参考<a href="http://www.jianshu.com/p/7da49e332e70" target="_blank" rel="noopener">spark rpc</a>)<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ReceiverTracker</span></span>&#123;</span><br><span class="line">   <span class="comment">// 这个rpc一端是运行在JobScheduler上的，负责接收Receiver传过来的消息，</span></span><br><span class="line">  <span class="comment">// 它是类ReceiverTrackerEndpoint(ReceiverTracker的内部类)的实例</span></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">var</span> endpoint: <span class="type">RpcEndpointRef</span> = <span class="literal">null</span></span><br><span class="line">   <span class="comment">// stream id到Receiver的信息，其中就包含了receiver的rpc通信信息</span></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">val</span> receiverTrackingInfos = <span class="keyword">new</span> <span class="type">HashMap</span>[<span class="type">Int</span>, <span class="type">ReceiverTrackingInfo</span>]</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 上面ReceiverRateController # push就是调用这个方法去通知receiver新的速率的</span></span><br><span class="line">   <span class="function"><span class="keyword">def</span> <span class="title">sendRateUpdate</span></span>(streamUID: <span class="type">Int</span>, newRate: <span class="type">Long</span>): <span class="type">Unit</span> = synchronized &#123;</span><br><span class="line">    <span class="keyword">if</span> (isTrackerStarted) &#123;</span><br><span class="line">      <span class="comment">// 这个enpoint是运行在JobScheduler上的，也就是给自己发了一个UpdateReceiverRateLimit更新速率的事件</span></span><br><span class="line">      endpoint.send(<span class="type">UpdateReceiverRateLimit</span>(streamUID, newRate))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">下面是<span class="type">ReceiverTrackerEndpoint</span>接收到<span class="type">UpdateReceiverRateLimit</span>消息时的处理：</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">receive</span></span>&#123;</span><br><span class="line">...</span><br><span class="line"><span class="keyword">case</span> <span class="type">UpdateReceiverRateLimit</span>(streamUID, newRate) =&gt;</span><br><span class="line">        <span class="comment">//  拿到receiver的rpc信息eP， 然后发送UpdateRateLimit(newRate)更新速率</span></span><br><span class="line">        <span class="keyword">for</span> (info &lt;- receiverTrackingInfos.get(streamUID); eP &lt;- info.endpoint) &#123;</span><br><span class="line">          eP.send(<span class="type">UpdateRateLimit</span>(newRate))</span><br><span class="line">        &#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>RateController更新速率以及通知新接收速率过程就是这样，接下来是Receiver如何去根据新的速率newRate控制接收速率。</p>
+<h4 id="2-2-2-Receiver控制速率"><a href="#2-2-2-Receiver控制速率" class="headerlink" title="2.2.2 Receiver控制速率"></a>2.2.2 Receiver控制速率</h4><p>Receiver上运行了很多组件：</p>
+<ul>
+<li>Receiver负责接收数据</li>
+<li>接收的数据上报给ReceiverSupervisorImpl</li>
+<li>如果接受的数据是一条条上报（调用方法ReceiverSupervisorImpl # putSingle）， 则ReceiverSupervisorImpl 使用BlockGenerator用来将一条条的记录汇聚成block(如果Receiver一次接收并上报一批数据就不会使用BlockGenerator)</li>
+</ul>
+<p>上面BlockGenerator将一条条数据汇聚成block， Receiver上控制接受速率就是通过BlockGenerator处理速度来实现的，BlockGenerator阻塞了也就相当于间接阻塞了Receiver接受速率。</p>
+<p>但是上面说只有一条条接受的数据会走BlockGenerator，如果Receiver不使用<br><code>ReceiverSupervisorImpl # putSingle</code>而是使用其他方法一次上报一批数据，其实反压是不起作用的。</p>
+<ol>
+<li><p>ReceiverSupervisorImpl接收UpdateRateLimit消息<br> 下面是ReceiverSupervisorImpl接受消息的rpc端处理代码:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">val</span> endpoint = env.rpcEnv.setupEndpoint(</span><br><span class="line">   <span class="string">"Receiver-"</span> + streamId + <span class="string">"-"</span> + <span class="type">System</span>.currentTimeMillis(), <span class="keyword">new</span> <span class="type">ThreadSafeRpcEndpoint</span> &#123;</span><br><span class="line">     <span class="keyword">override</span> <span class="keyword">val</span> rpcEnv: <span class="type">RpcEnv</span> = env.rpcEnv</span><br><span class="line"></span><br><span class="line">     <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receive</span></span>: <span class="type">PartialFunction</span>[<span class="type">Any</span>, <span class="type">Unit</span>] = &#123;</span><br><span class="line">       <span class="keyword">case</span> <span class="type">StopReceiver</span> =&gt;</span><br><span class="line">         logInfo(<span class="string">"Received stop signal"</span>)</span><br><span class="line">         <span class="type">ReceiverSupervisorImpl</span>.<span class="keyword">this</span>.stop(<span class="string">"Stopped by driver"</span>, <span class="type">None</span>)</span><br><span class="line">       <span class="keyword">case</span> <span class="type">CleanupOldBlocks</span>(threshTime) =&gt;</span><br><span class="line">         logDebug(<span class="string">"Received delete old batch signal"</span>)</span><br><span class="line">         cleanupOldBlocks(threshTime)</span><br><span class="line">       <span class="keyword">case</span> <span class="type">UpdateRateLimit</span>(eps) =&gt;</span><br><span class="line">         logInfo(<span class="string">s"Received a new rate limit: <span class="subst">$eps</span>."</span>)</span><br><span class="line">        <span class="comment">// 通知所有的BlockGenerator去更新速率</span></span><br><span class="line">         registeredBlockGenerators.asScala.foreach &#123; bg =&gt;</span><br><span class="line">           bg.updateRate(eps)</span><br><span class="line">         &#125;</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>BlockGenerator控制速率<br>BlockGenerator采用令牌桶算法实现速率控制,原理简介如下:</p>
+<blockquote>
+<p>假设想把接收速率控制在m条记录每秒， 那么生产者只需要以恒定的速度每秒向桶中放m个令牌，数据接收者接收数据之前需要从桶中拿走一个令牌才能接收一条数据，显然数据接收速率不会超过m</p>
+</blockquote>
+<p>来看看BlockGenerator是怎么实现的，BlockGenerator实现了RateLimiter抽象类，下面是RateLimiter的部分实现:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 最大接收速率,接收数据速率由maxRateLimit和动态更新的反压速率共同控制</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">val</span> maxRateLimit = conf.getLong(<span class="string">"spark.streaming.receiver.maxRate"</span>, <span class="type">Long</span>.<span class="type">MaxValue</span>)</span><br><span class="line">  <span class="comment">// rateLimiter负责产生令牌</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">lazy</span> <span class="keyword">val</span> rateLimiter = <span class="type">GuavaRateLimiter</span>.create(getInitialRateLimit().toDouble)</span><br><span class="line"> </span><br><span class="line"> <span class="comment">// BlockGenerator在存储数据之前会调用这个方法，相当于取令牌。</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">waitToPush</span></span>() &#123;</span><br><span class="line">    rateLimiter.acquire()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"> <span class="comment">// 更新速率，也就是令牌产生的速率</span></span><br><span class="line">  <span class="keyword">private</span>[receiver] <span class="function"><span class="keyword">def</span> <span class="title">updateRate</span></span>(newRate: <span class="type">Long</span>): <span class="type">Unit</span> =</span><br><span class="line">    <span class="keyword">if</span> (newRate &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (maxRateLimit &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        rateLimiter.setRate(newRate.min(maxRateLimit))</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        rateLimiter.setRate(newRate)</span><br><span class="line">      &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>BlockGenerator的父类RateLimiter实现了令牌桶速率控制算法，接下来就是BlockGenerator在接收Receiver传递过来的数据时调用<code>waitToPush</code>去获取令牌了，没有令牌是，BlockGenerator阻塞，那么Receiver也会阻塞下去。</p>
+<h3 id="2-3-DirectKafkaInputDStream时的反压实现"><a href="#2-3-DirectKafkaInputDStream时的反压实现" class="headerlink" title="2.3 DirectKafkaInputDStream时的反压实现"></a>2.3 DirectKafkaInputDStream时的反压实现</h3><p>DirectKafkaInputDStream是没有Receiver的。</p>
+<ul>
+<li><p>有Receiver的stream job， 数据从由Receiver接收，然后组装成block然后汇报到JobScheduler，stream job提交运行前从JobScheduler拿一个block运行。</p>
+</li>
+<li><p>但是对于DirectKafkaInputDStream而言，不存在独立运行的Receiver接收数据，而是在从DirectKafkaInputDStream创建出<code>KafkaRDD</code>然后提交stream job运行时，在<code>KafkaRDD</code>的compute方法中才开始从kafka读取数据。此时由于接收数据是在job开始运行后在task中进行的，因此反压实现也是通过控制本次task从kafka中读取多少数据来实现的。</p>
+</li>
+</ul>
+<p><strong>1. 计算接收速率</strong><br>不贴代码了，<code>DirectKafkaInputDStream</code>使用IDRateEstimator去评估每秒接收的数据量R，同时由于<code>DirectKafkaInputDStream</code>可以同时从一个topic的n个分区接收数据，这个R是整个全部分区的数据接收速度，在<code>DirectKafkaInputDStream</code>中还有一个重要的参数<code>spark.streaming.kafka.maxRatePerPartition</code>（每秒）控制每个分区的最大接收速度(假设是maxR)。</p>
+<p>评估出R之后，就是计算n个分区每个分区的速度了，这个不是简单的R/n分的，<br>而是根据之前每一个分区消费到的offset（假设是prefOffset）和现在每个分区的最新offset（假设是curOffset）的差值/ 总差值的比例计算出来的，</p>
+<p>假设全部n个分区从上一batch消费之后到现在的整个未消费记录数是totalLag，<br>分区n1未消费数是lagN1， 那么本次batch从分区n1应该消费的记录数就是:</p>
+<blockquote>
+<p>（min( (lagN1 / totalLag) <em> R, maxR）） </em> batchDuration（换算成秒）</p>
+</blockquote>
+<p><strong>2. 控制速率</strong><br>「1」中计算出每个分区最大消费记录数m，接下来从<code>DirectKafkaInputDStream</code>生成<code>KafkaRDD</code>（KafkaRDD的分区个数也就是topic的分区个数）， 然后提交job运行后<code>KafkaRDD</code>的compute方法开始从kafka消费m条记录。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
+          
+            <a href="/tags/Spark-Streaming/" rel="tag"># Spark Streaming</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/10/25/Spring事件机制/" rel="next" title="Spring事件机制">
+                <i class="fa fa-chevron-left"></i> Spring事件机制
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/07/Logback-SiftingAppender/" rel="prev" title="Logback - SiftingAppender">
+                Logback - SiftingAppender <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1. 前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-反压"><span class="nav-number">2.</span> <span class="nav-text">2. 反压</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-开启反压"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 开启反压</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-有Receiver时反压原理"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 有Receiver时反压原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-RateController"><span class="nav-number">2.2.1.</span> <span class="nav-text">2.2.1 RateController</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2-Receiver控制速率"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.2.2 Receiver控制速率</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-DirectKafkaInputDStream时的反压实现"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 DirectKafkaInputDStream时的反压实现</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

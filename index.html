@@ -874,9 +874,810 @@
 
 
     
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/19/maven插件-2-spring-boot-插件/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/19/maven插件-2-spring-boot-插件/" itemprop="url">maven插件(2) - spring boot 插件</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-19T20:25:53+08:00">
+                2017-11-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-Spring-Boot-Maven-插件"><a href="#1-Spring-Boot-Maven-插件" class="headerlink" title="1. Spring Boot Maven 插件"></a>1. Spring Boot Maven 插件</h1><p>Spring Boot的maven插件能够以maven命令行的方式提供对spring boot 应用打包和运行的支持。</p>
+<h2 id="1-1-使用spring-boot-maven插件"><a href="#1-1-使用spring-boot-maven插件" class="headerlink" title="1.1 使用spring boot maven插件"></a>1.1 使用spring boot maven插件</h2><p>在pom中加入如下配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.5.4.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">layout</span>&gt;</span>WAR<span class="tag">&lt;/<span class="name">layout</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>repackage<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p><code>spring-boot-maven-plugin</code>包含如下几个goal:</p>
+<table>
+<thead>
+<tr>
+<th>goal</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>repackage</td>
+<td>build一个可执行的jar或者war包</td>
+</tr>
+<tr>
+<td>run</td>
+<td>运行springboot应用</td>
+</tr>
+<tr>
+<td>start ，stop</td>
+<td>这两个配合在一起，绑定在integration-test这个phase，可以运行测试前后启动停止spring boot应用</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-2-repackage"><a href="#1-2-repackage" class="headerlink" title="1.2 repackage"></a>1.2 repackage</h2><p>绑定在<code>package</code> 这个phase上，可以为spring boot应用生成一个可执行的jar或war包。<br>以上面的plugin配置为例，运行<code>mvn package</code>会生成两个jar包，一个是原始jar包（也就是不使用这个插件时运行<code>mvn package</code>生成的jar包），一个是可执行的spring boot 应用的jar包。<br>下面是我的一个使用spring boot插件实例项目生成的两个war包（jar包类似）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">webtest-1.0-SNAPSHOT.war    插件生成的war包</span><br><span class="line">webtest-1.0-SNAPSHOT.war.original     这是原始的war包</span><br></pre></td></tr></table></figure></p>
+<p>原始包被重命名成以<code>.original</code>为后缀的包，改变后缀可使用如下配置方式：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>repackage<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!--原始包的后缀将变成.exec--&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">classifier</span>&gt;</span>exec<span class="tag">&lt;/<span class="name">classifier</span>&gt;</span>   </span><br><span class="line">          <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>repackage生成的jar/war包会修改MANIFEST.MF文件，比如下面是我生成的war包中的MANIFEST.MF文件内容：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Manifest-Version: 1.0</span><br><span class="line">Spring-Boot-Classes: WEB-INF/classes/</span><br><span class="line">Built-By: eric</span><br><span class="line">Build-Jdk: 1.7.0_71</span><br><span class="line">Start-Class: me.test.webtest.WebMain</span><br><span class="line">Created-By: Apache Maven 3.3.9</span><br><span class="line">Spring-Boot-Lib: WEB-INF/lib/</span><br><span class="line">Spring-Boot-Version: 1.5.4.RELEASE</span><br><span class="line">Main-Class: org.springframework.boot.loader.WarLauncher</span><br><span class="line">Archiver-Version: Plexus Archiver</span><br></pre></td></tr></table></figure></p>
+<p>我的测试项目main方法在WebMain这个类里面，但是可以看到生成的manifest文件中Main-Class是WarLaucher，还多了一个叫Start-Class的属性值是才是我的main方法所在类。<br>这是跟spring boot的启动方式有关系，运行该war包先启动WarLauncher会完成一些前期准备工作，完后最终会加载WebMain运行。打成jar也是一样的道理。</p>
+<p>最终打包的的类型取决<layout>这个元素（第一个pom示例中有）,可选值有如下：</layout></p>
+<ol>
+<li>WAR, 此时Main-Class如上</li>
+<li>JAR， 此时Main-Class 是JarLauncher</li>
+<li>ZIP, 包目录结构类似JAR，实时Main-Class是PropertiesLauncher</li>
+<li>MODULE，只将当前module打进包，且不包含任何XXXLauncher</li>
+<li>NONE， 和MODULE的区别是它会把当前的module的依赖也会打进包</li>
+</ol>
+<h2 id="1-3-run"><a href="#1-3-run" class="headerlink" title="1.3 run"></a>1.3 run</h2><p>在命令行运行<code>mvn spring-boot:run</code>可以启动spring boot应用（不过一般我们调试不都是直接在ide里点吗）。</p>
+<p>可以通过如下配置给启动的jvm传递参数：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">jvmArguments</span>&gt;</span></span><br><span class="line">            -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005</span><br><span class="line">          <span class="tag">&lt;/<span class="name">jvmArguments</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>dev-tools</strong><br>spring boot 1.3之后引入了<code>dev-tools</code>可以让你方便开发应用，在spring boot应用启动后，它监听资源文件的改变，或者重新编译生成class，有变化之后自动刷新（repackage是不会把dev-tools打进包的，所以生产环境dev-tool是不会起作用的）。</p>
+<p>通过在pom中引入：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"> <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-devtools<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.5.4.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="comment">&lt;!--指定optional为true可以避免被repackage打war时devtools也被打进war包--&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">optional</span>&gt;</span>true<span class="tag">&lt;/<span class="name">optional</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>可以通过设置<code>spring.devtools.remote.restart.enabled=false</code>这个java系统属性，是的dev-tools只在静态资源改变是才刷新。</p>
+<h2 id="1-4-start-stop"><a href="#1-4-start-stop" class="headerlink" title="1.4 start stop"></a>1.4 start stop</h2><p>没用过～～～，想了解请参考 <strong>附</strong></p>
+<p><strong>附</strong><br>本文参考spring boot官网<a href="https://docs.spring.io/spring-boot/docs/current/maven-plugin/usage.html" target="_blank" rel="noopener">spring boot maven plugin</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/19/maven插件-3-scala插件scala-maven-plugin/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/19/maven插件-3-scala插件scala-maven-plugin/" itemprop="url">maven插件(3) - scala插件scala-maven-plugin</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-19T20:24:28+08:00">
+                2017-11-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-scala-maven-plugin"><a href="#1-scala-maven-plugin" class="headerlink" title="1. scala-maven-plugin"></a>1. scala-maven-plugin</h1><p>这个插件是用来让maven能够编译、测试、运行scala项目的，使用文档参考<a href="https://davidb.github.io/scala-maven-plugin/index.html" target="_blank" rel="noopener">scala-maven-plugin</a></p>
+<h2 id="1-1使用插件"><a href="#1-1使用插件" class="headerlink" title="1. 1使用插件"></a>1. 1使用插件</h2><p>在pom中加入如下配置:<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.scala-tools<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-scala-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.15.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">id</span>&gt;</span>scala-compile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                          <span class="comment">&lt;!--includes是一个数组，包含要编译的code--&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">includes</span>&gt;</span></span><br><span class="line">                                <span class="tag">&lt;<span class="name">include</span>&gt;</span>**/*.scala<span class="tag">&lt;/<span class="name">include</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;/<span class="name">includes</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">id</span>&gt;</span>scala-test-compile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>比较常用的两个goal：</p>
+<ol>
+<li>compile 编译scala code</li>
+<li>testCompile 编译test code</li>
+</ol>
+<p>运行命令行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn clean scala:compile  compile</span><br></pre></td></tr></table></figure></p>
+<p>编译项目</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/19/maven插件-4-项目打包插件/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/19/maven插件-4-项目打包插件/" itemprop="url">maven插件(4) - 项目打包插件</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-19T20:22:24+08:00">
+                2017-11-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-maven-assembly-plugin"><a href="#1-maven-assembly-plugin" class="headerlink" title="1. maven-assembly-plugin"></a>1. maven-assembly-plugin</h1><p>参考<a href="http://maven.apache.org/plugins/maven-assembly-plugin/usage.html" target="_blank" rel="noopener">maven-assembly-plugin</a>, maven-assembly-plugin这个插件可用来打可发布可独立运行的jar包， 也就是说它可以将项目中所有依赖打进包。</p>
+<p><strong>使用插件</strong><br>在pom中加入：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-assembly-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">                   <span class="comment">&lt;!--这个插件会输出多个包，原始包不包含任何依赖，</span></span><br><span class="line"><span class="comment">                   以及一个或者多个包含所有依赖的包，这些包以&lt;descriptorRef&gt;中的value为后缀。 这里可以配置n个&lt;descriptorRef&gt;，就会多生成n个包含所有依赖的包--&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">descriptorRefs</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">descriptorRef</span>&gt;</span>jar-with-dependencies<span class="tag">&lt;/<span class="name">descriptorRef</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">descriptorRefs</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">                        <span class="comment">&lt;!--这里将single这个goal绑定在package这个phase上--&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">id</span>&gt;</span>make-assembly<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>single<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">                       <span class="comment">&lt;!--&lt;configuration&gt;--&gt;</span></span><br><span class="line">                            <span class="comment">&lt;!--&lt;archive&gt;--&gt;</span></span><br><span class="line">                                <span class="comment">&lt;!--&lt;manifest&gt;--&gt;</span></span><br><span class="line">                                    <span class="comment">&lt;!--&lt;mainClass&gt;me.test.sparktest.WordCount&lt;/mainClass&gt;--&gt;</span></span><br><span class="line">                                <span class="comment">&lt;!--&lt;/manifest&gt;--&gt;</span></span><br><span class="line">                            <span class="comment">&lt;!--&lt;/archive&gt;--&gt;</span></span><br><span class="line">                        <span class="comment">&lt;!--&lt;/configuration&gt;--&gt;</span></span><br><span class="line">                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>使用命令:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn assembly:single</span><br></pre></td></tr></table></figure></p>
+<p><strong> 生成可运行的包</strong><br>去掉上面配置中<configuration></configuration>的注释，<mainclass>这个元素指定了MANIFEST.MF中的Main-Class。</mainclass></p>
+<h1 id="2-maven-shade-plugin"><a href="#2-maven-shade-plugin" class="headerlink" title="2. maven-shade-plugin"></a>2. maven-shade-plugin</h1><p>这个插件功能介绍如下：</p>
+<blockquote>
+<p>This plugin provides the capability to package the artifact in an uber-jar.<br>关于什么是uber-jar可以参考stackoverflow上的回答<a href="https://stackoverflow.com/questions/11947037/what-is-an-uber-jar" target="_blank" rel="noopener">what-is-an-uber-jar</a></p>
+</blockquote>
+<p>和assembly插件一样它也可以将所有依赖打到包中，同时也可以打可执行的jar包。</p>
+<p>参考官方文档:<a href="http://maven.apache.org/plugins/maven-shade-plugin/" target="_blank" rel="noopener">maven-shade-plugin</a></p>
+<p><strong>1. 使用插件</strong><br>在pom中加入配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-shade-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">          <span class="comment">&lt;!-- put your configurations here --&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">            <span class="comment">&lt;!--将shade 这个goal绑定到package这个phase上--&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">goal</span>&gt;</span>shade<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>运行命令<code>mvn package</code>（将shade绑定在package这个phase上，不然会出错）</p>
+<p><strong>2. 可执行jar包</strong><br>加入如下配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="tag">&lt;<span class="name">transformers</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">transformer</span> <span class="attr">implementation</span>=<span class="string">"org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"</span>&gt;</span></span><br><span class="line">                  <span class="comment">&lt;!--指定main所在的class--&gt;</span></span><br><span class="line">                   <span class="tag">&lt;<span class="name">mainClass</span>&gt;</span>me.test.sparktest.WordCount<span class="tag">&lt;/<span class="name">mainClass</span>&gt;</span></span><br><span class="line">         </span><br><span class="line">                <span class="tag">&lt;/<span class="name">transformer</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;/<span class="name">transformers</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;/<span class="name">pluigin</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>3. 改变MANIFEST.MF</strong><br>依然是2中的配置， 如下：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">  ...</span><br><span class="line">   <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">   ...</span><br><span class="line">     <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="tag">&lt;<span class="name">transformers</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">transformer</span> <span class="attr">implementation</span>=<span class="string">"org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"</span>&gt;</span></span><br><span class="line">                   <span class="tag">&lt;<span class="name">manifestEntries</span>&gt;</span></span><br><span class="line">                        <span class="comment">&lt;!--按照key: value 的形式在MANIFEST.MF中加入配置--&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">Main-Class</span>&gt;</span>me.test.sparktest.WordCount<span class="tag">&lt;/<span class="name">Main-Class</span>&gt;</span></span><br><span class="line">                        <span class="tag">&lt;<span class="name">JdkSourceVersion</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">JdkSourceVersion</span>&gt;</span></span><br><span class="line">                   <span class="tag">&lt;/<span class="name">manifestEntries</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">transformer</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;/<span class="name">transformers</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">   ...</span><br><span class="line">   <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>加入：<code>&lt;Main-Class&gt;me.test.sparktest.WordCount&lt;/Main-Class&gt;</code>会在MANIFEST.MF中加入Main-Class: me.test.sparktest.WordCount这样的信息<br>加入：<code>&lt;JdkSourceVersion&gt;1.7&lt;/JdkSourceVersion&gt;</code>会在生成的MANIFEST.MF中加入JdkSourceVersion: 1.7这样一行。</p>
+<p>参考<a href="http://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html#ManifestResourceTransformer" target="_blank" rel="noopener">setting manifest entry</a><br><strong>4. 合并资源文件</strong><br>当项目中有很多同名的资源文件是，默认的行为是覆盖，比如spring项目的很多模块里都有<code>META-INF/spring.handlers</code>这个文件（spring依靠这些文件去解析spring xml文件里面的元素）， 如果采用默认的覆盖行为显然会导致错误，加入如下配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">goal</span>&gt;</span>shade<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">transformers</span>&gt;</span></span><br><span class="line">             <span class="comment">&lt;!--AppendingTransformer会将相同的资源文件合并成一个，这里将META-INF/spring.handlers合并成一个--&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">transformer</span> <span class="attr">implementation</span>=<span class="string">"org.apache.maven.plugins.shade.resource.AppendingTransformer"</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">resource</span>&gt;</span>META-INF/spring.handlers<span class="tag">&lt;/<span class="name">resource</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">transformer</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">transformer</span> <span class="attr">implementation</span>=<span class="string">"org.apache.maven.plugins.shade.resource.AppendingTransformer"</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">resource</span>&gt;</span>META-INF/spring.schemas<span class="tag">&lt;/<span class="name">resource</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">transformer</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;/<span class="name">transformers</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>参考<a href="http://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html#AppendingTransformer" target="_blank" rel="noopener">merging resource</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/18/maven插件-1-使用插件/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/18/maven插件-1-使用插件/" itemprop="url">maven插件(1) - 使用插件</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-18T20:27:56+08:00">
+                2017-11-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><blockquote>
+<p>Maven is - at its heart - a plugin execution framework; all work is done by plugins. </p>
+</blockquote>
+<p>maven实际上一个插件执行框架，所有的工作实际上都是通过插件完成，一个插件通常提供若干目标（goal），通过如下形式的命令执行插件目标：<br><code>mvn [plugin name]:[goal name]</code></p>
+<p>例如可以通过编译插件compiler去编译目标，命令如下：<br><code>mvn compiler:compile</code></p>
+<p><strong>插件类型</strong><br>插件有两类：</p>
+<table>
+<thead>
+<tr>
+<th>插件类型</th>
+<th>解释</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build plugins</td>
+<td>build项目时期执行这类插件，且这类插件必须配置在pom的<build></build>中</td>
+<td></td>
+</tr>
+<tr>
+<td>report plugins</td>
+<td>mvn site期间执行的插件，用于生成项目报表文档之类的，需要配置在pom的<reporting></reporting>之间</td>
+</tr>
+</tbody>
+</table>
+<p>由于我从来没有用过report plugin，所以本文只会讲build plugins。</p>
+<h1 id="2-生命周期"><a href="#2-生命周期" class="headerlink" title="2. 生命周期"></a>2. 生命周期</h1><p>maven是一种基于构建生命周期(build lifecycle)的项目构建工具, 也就是说一个项目的构建和发布是要经历几个过程的，目前主要包含三个过程：</p>
+<ol>
+<li>clean</li>
+<li>default</li>
+<li>site</li>
+</ol>
+<p>这其中每一个过程又有若干个阶段（phase）组成。下面列表只是简单列出了开发者比较常见的phase：<br><strong>1. clean</strong></p>
+<table>
+<thead>
+<tr>
+<th>phase</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>clean</td>
+<td>起初之前一起build生成的文件</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. default</strong></p>
+<table>
+<thead>
+<tr>
+<th>phase</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>validate</td>
+<td>对项目的必要信息或资源进行验证</td>
+</tr>
+<tr>
+<td>initialize</td>
+<td>初始化操作，比如常见目录，设置属性</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>编译源文件</td>
+</tr>
+<tr>
+<td>test</td>
+<td>使用测试框架跑所有测试用例</td>
+</tr>
+<tr>
+<td>package</td>
+<td>打包项目</td>
+</tr>
+<tr>
+<td>install</td>
+<td>部署到本地repository</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>发布到远程仓库</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3. site</strong></p>
+<table>
+<thead>
+<tr>
+<th>phase</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>site</td>
+<td>生成项目文档的网页资源</td>
+</tr>
+</tbody>
+</table>
+<p>使用过mvn的就会发现，一个phase对应一个mvn的命令，比如当执行<code>mvn compile</code>命令时就是执行该phase之前的所有phase。<br>但是前言中说过mvn是通过插件来执行任务的，当执行<code>mvn compile</code>这个phase时，实际上是执行绑定在compile这个phase上的插件目标，由于compile这个phase默认绑定了<code>compiler: compile</code>（compiler插件的compile目标）,因此执行<code>mvn compile</code>等于去执行了<code>mvn compiler:compile</code></p>
+<p>再例如：执行<code>mvn package</code> 实际上执行了插件<code>mvn jar:jar</code>(注意此处假设pom里配置了<packaging>jar<package>), 因为package这个phase默认绑定了<code>jar:jar</code>这个插件目标。</package></packaging></p>
+<p><strong>附：</strong><br>这一节只是简单介绍了插件构建的生命周期一个，省略了一些内容，更多的细节请参考官方文档介绍<a href="http://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html#Lifecycle_Reference" target="_blank" rel="noopener">mvn 生命周期</a></p>
+<h1 id="3-插件配置"><a href="#3-插件配置" class="headerlink" title="3. 插件配置"></a>3. 插件配置</h1><p>本文只介绍build plugin， build plugin需要写在pom文件的<code>&lt;build&gt;&lt;/build&gt;</code>中,<br>一个插件通常包含如下配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0</span></span></span><br><span class="line"><span class="tag"><span class="string">                      https://maven.apache.org/xsd/maven-4.0.0.xsd"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-jar-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.6<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">extensions</span>&gt;</span>false<span class="tag">&lt;/<span class="name">extensions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">inherited</span>&gt;</span>true<span class="tag">&lt;/<span class="name">inherited</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">classifier</span>&gt;</span>test<span class="tag">&lt;/<span class="name">classifier</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>...<span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">executions</span>&gt;</span>...<span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>一个<plugin></plugin>表示一个插件， <groupid>,<artifactid>,<version>都是引入必要配置。插件本质上托管在mvn仓库里。</version></artifactid></groupid></li>
+<li><inherited>表示是否当前pom的子pom中继承这个插件配置，true表示子pom继承父pom这个插件配置，那么你就可以在子pom上通过mvn命令使用这个插件</inherited></li>
+<li><configuration>中包含了插件类实例化时用于初始化类成员信息</configuration></li>
+<li><p><dependencies>, 插件自身也会依赖外部包，<dependencies>中可以为插件指定特定的依赖包， 引入方式如下:</dependencies></dependencies></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependency</span>&gt;</span> </span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>...<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>...<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">version</span>&gt;</span>...<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><executions>, 一个插件可能包含多个goal，<executions>中可以单独为某个goal指定配置，以及将goal绑定到某个phase。executions包含的elements如下：</executions></executions></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--需要在&lt;executions&gt;里面唯一的id--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">id</span>&gt;</span><span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">          <span class="comment">&lt;!--列出需要特定去配置的所有goal--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">           <span class="tag">&lt;<span class="name">goal</span>&gt;</span>run<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--将这些goal绑定到phase--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">phase</span>&gt;</span>verify<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--指定子pom是否继承这些配置--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">inherited</span>&gt;</span>false<span class="tag">&lt;/<span class="name">inherited</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="comment">&lt;!--这里指定配置--&gt;</span></span><br><span class="line">         <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">         ...</span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">       ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>一个示例</strong><br>比如下面就是一个几乎所有人都会用到的插件配置，compiler：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-compiler-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.5.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span>  <span class="comment">&lt;!--指定compiler插件版本信息--&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="comment">&lt;!--插件实例化参数，这个参数是设置javac -source的值--&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">source</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">source</span>&gt;</span>  </span><br><span class="line">           <span class="comment">&lt;!--插件实例化参数，这个参数是设置javac -target的值--&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">target</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">target</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"></span><br><span class="line">这里没有指定<span class="tag">&lt;<span class="name">executions</span>&gt;</span>，因为compiler插件的目标compile默认被绑定到compile这个phase上了，</span><br><span class="line">目标testCompile被绑定到了test-compile这个phase上了。</span><br><span class="line">当然你可以显式指定，加入如下配置即可：</span><br><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">id</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">goal</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">phase</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">id</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">phase</span>&gt;</span>test-compile<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                 <span class="tag">&lt;<span class="name">goal</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>所以当执行<code>mvn compile</code>时其实执行了插件目标<code>mvn compiler:compile</code>,执行<code>mvn test-compile</code>时执行了插件目标<code>mvn compiler:testCompile</code>.</p>
+<p><strong>附</strong></p>
+<ol>
+<li>关于插件参数配置参考<a href="http://maven.apache.org/guides/mini/guide-configuring-plugins.html" target="_blank" rel="noopener">guide-configuring-plugins</a></li>
+<li>关于pom中使用插件参考<a href="http://maven.apache.org/pom.html" target="_blank" rel="noopener">plugins in pom</a></li>
+<li>关于maven插件列表参考<a href="http://maven.apache.org/plugins/" target="_blank" rel="noopener">available plugins</a></li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/15/spark如何只在map端做完成reduce的工作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/15/spark如何只在map端做完成reduce的工作/" itemprop="url">spark如何只在map端做完成reduce的工作</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-15T20:20:24+08:00">
+                2017-11-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.  前言"></a>1.  前言</h1><p>有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直接在map端就去完成reduce操作。</p>
+<p>比如下面是一个word count在2个分区里面的分布：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">------partition 1----------</span><br><span class="line">(failure,1)</span><br><span class="line">(count,1)</span><br><span class="line">(thief,1)</span><br><span class="line">(failure,1)</span><br><span class="line"></span><br><span class="line">------partition 2--------</span><br><span class="line">(fortification,1)</span><br><span class="line">(peek,1) </span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,1)</span><br></pre></td></tr></table></figure></p>
+<p>由于相同的word都在同一个分区里面了，没必要去通过reduceByKey去完成word count操作。</p>
+<h1 id="2-解决方法"><a href="#2-解决方法" class="headerlink" title="2. 解决方法"></a>2. 解决方法</h1><p>实现一个RDD，在其compute方法里完成按key聚合，实现如下:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> K: key type</span></span><br><span class="line"><span class="comment"> V: 上游rdd中value的type</span></span><br><span class="line"><span class="comment"> C: V 经过reduce之后的type</span></span><br><span class="line"><span class="comment">参考ShufferedRDD</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MapsideReduceRDD</span>[<span class="type">K</span>:<span class="type">ClassTag</span>, <span class="type">V</span>:<span class="type">ClassTag</span>, <span class="type">C</span>:<span class="type">ClassTag</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">   // 上游rdd，要求上游的rdd中数据已经转换成(key,value</span>)<span class="title">的形式</span></span></span><br><span class="line"><span class="class">  <span class="title">@transient</span> <span class="title">var</span> <span class="title">prev</span> </span>: <span class="type">RDD</span>[_ &lt;: <span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]</span><br><span class="line"></span><br><span class="line">) <span class="keyword">extends</span> <span class="type">RDD</span>[(<span class="type">K</span>,<span class="type">C</span>)](prev)&#123;</span><br><span class="line">  <span class="comment">// 需要一个aggregator去完成value的聚合, reduceByKey也会创建这个</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">var</span> aggregator : <span class="type">Option</span>[<span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]] = <span class="type">None</span></span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">setAggregator</span></span>(aggregator: <span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]):<span class="keyword">this</span>.<span class="keyword">type</span> =&#123;</span><br><span class="line">    <span class="keyword">this</span>.aggregator = <span class="type">Option</span>(aggregator)</span><br><span class="line">    <span class="keyword">this</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">compute</span></span>(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[(<span class="type">K</span>, <span class="type">C</span>)] = &#123;</span><br><span class="line">    <span class="comment">/* 创建一个ExternalAppendOnlyMap，这个数据结构是spark中提供的，插入</span></span><br><span class="line"><span class="comment"> .  (K,V)的数据，然后按照传递给他聚合方法完成(K,V)的聚合，返回(K,C)的数据</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">    <span class="keyword">val</span> externalMap = createExternalMap</span><br><span class="line">  <span class="comment">// 这里迭代上游rdd中(K,V)类型的记录</span></span><br><span class="line">    <span class="keyword">val</span> rddIter = dependencies(<span class="number">0</span>).rdd.asInstanceOf[<span class="type">RDD</span>[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]].iterator(split, context)</span><br><span class="line">    <span class="comment">// 插入到externalMap中</span></span><br><span class="line">    externalMap.insertAll(rddIter)</span><br><span class="line">   <span class="comment">// 返回</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">InterruptibleIterator</span>(context,</span><br><span class="line">      externalMap.iterator</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>] = firstParent[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]].partitions</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">createExternalMap</span></span>: <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>] = &#123;</span><br><span class="line">    require(aggregator.nonEmpty, <span class="string">"aggregator should not be empty"</span>)</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">      创建ExternalAppendOnlyMap， 它需要一下参数:</span></span><br><span class="line"><span class="comment">      - 一个V =&gt; C 类型的函数，用于迭代时发现某个key的第一个value，将它转换成C</span></span><br><span class="line"><span class="comment">     - 一个(C,V) =&gt; C类型的函数，用于将value合并到C上</span></span><br><span class="line"><span class="comment">     - 一个(C,C) =&gt; C类型的函数，将两个部分聚合的结果合并到一起</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>](aggregator.get.createCombiner, aggregator.get.mergeValue, aggregator.get.mergeCombiners)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>ExternalAppendOnlyMap会在必要时spill到磁盘</p>
+<h2 id="2-1-测试"><a href="#2-1-测试" class="headerlink" title="2.1 测试"></a>2.1 测试</h2><p>测试类如下：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">MapsideReduceTest</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>()</span><br><span class="line">    <span class="keyword">val</span> words = <span class="type">Seq</span>(<span class="type">Seq</span>(<span class="string">"failure"</span>,<span class="string">"count"</span>,<span class="string">"thief"</span>,<span class="string">"failure"</span>,<span class="string">"count"</span>),<span class="type">Seq</span>(<span class="string">"fortification"</span>,<span class="string">"peek"</span>,<span class="string">"lepta"</span>,<span class="string">"peek"</span>));</span><br><span class="line">    <span class="comment">// 分两个分区，第一个分区包含Seq("failure","count","thief","failure","count")</span></span><br><span class="line">    <span class="comment">// 这样相同的word只在一个分区里面，然后统计word count</span></span><br><span class="line">    <span class="keyword">val</span> wordsRDD = sc.parallelize(words, <span class="number">2</span>)</span><br><span class="line">    <span class="comment">// flatMap将Seq()展开，然后调用map转换成(failure,1)这种数据</span></span><br><span class="line">    <span class="keyword">val</span> wordsCount = wordsRDD.flatMap(seq =&gt; seq).map(word =&gt; (word,<span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> aggregator = createAggregator</span><br><span class="line">    <span class="keyword">val</span> mapsideReduceRDD = <span class="keyword">new</span> <span class="type">MapsideReduceRDD</span>[<span class="type">String</span>, <span class="type">Int</span>, <span class="type">Int</span>](wordsCount).setAggregator(aggregator)</span><br><span class="line">    mapsideReduceRDD.saveAsTextFile(<span class="string">"/Users/eric/mapsideReduce"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">createAggregator</span></span>: <span class="type">Aggregator</span>[<span class="type">String</span>,<span class="type">Int</span>,<span class="type">Int</span>] =&#123;</span><br><span class="line">    <span class="keyword">val</span> createCombiner: <span class="type">Int</span> =&gt; <span class="type">Int</span> = value =&gt; value</span><br><span class="line">    <span class="keyword">val</span> mergeValue : (<span class="type">Int</span>, <span class="type">Int</span>) =&gt; <span class="type">Int</span> = (mergedValue, newValue) =&gt; &#123;</span><br><span class="line">      mergedValue + newValue</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> mergeCombiner = mergeValue</span><br><span class="line"></span><br><span class="line">    <span class="keyword">new</span> <span class="type">Aggregator</span>[<span class="type">String</span>, <span class="type">Int</span>,<span class="type">Int</span>](createCombiner, mergeValue, mergeCombiner)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>提交后测试结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">产生2个输出文件以及内容：</span><br><span class="line">------ part-00000 -------</span><br><span class="line">(failure,2)</span><br><span class="line">(count,2)</span><br><span class="line">(thief,1)</span><br><span class="line"></span><br><span class="line">------- part-00001 ------</span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,2)</span><br><span class="line">(fortification,1)</span><br></pre></td></tr></table></figure></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
   </section>
 
   
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+  </nav>
+
 
 
           </div>
@@ -920,7 +1721,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">19</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -933,7 +1734,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-count">17</span>
                   <span class="site-state-item-name">标签</span>
                 
               </div>

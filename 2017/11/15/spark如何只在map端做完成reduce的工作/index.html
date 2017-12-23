@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Spark," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1.  前言有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直">
+<meta name="keywords" content="Spark">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spark如何只在map端做完成reduce的工作">
+<meta property="og:url" content="http://yoursite.com/2017/11/15/spark如何只在map端做完成reduce的工作/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1.  前言有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2017-12-23T12:21:12.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="spark如何只在map端做完成reduce的工作">
+<meta name="twitter:description" content="1.  前言有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/11/15/spark如何只在map端做完成reduce的工作/"/>
+
+
+
+
+
+  <title>spark如何只在map端做完成reduce的工作 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/15/spark如何只在map端做完成reduce的工作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">spark如何只在map端做完成reduce的工作</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-15T20:20:24+08:00">
+                2017-11-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.  前言"></a>1.  前言</h1><p>有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直接在map端就去完成reduce操作。</p>
+<p>比如下面是一个word count在2个分区里面的分布：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">------partition 1----------</span><br><span class="line">(failure,1)</span><br><span class="line">(count,1)</span><br><span class="line">(thief,1)</span><br><span class="line">(failure,1)</span><br><span class="line"></span><br><span class="line">------partition 2--------</span><br><span class="line">(fortification,1)</span><br><span class="line">(peek,1) </span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,1)</span><br></pre></td></tr></table></figure></p>
+<p>由于相同的word都在同一个分区里面了，没必要去通过reduceByKey去完成word count操作。</p>
+<h1 id="2-解决方法"><a href="#2-解决方法" class="headerlink" title="2. 解决方法"></a>2. 解决方法</h1><p>实现一个RDD，在其compute方法里完成按key聚合，实现如下:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> K: key type</span></span><br><span class="line"><span class="comment"> V: 上游rdd中value的type</span></span><br><span class="line"><span class="comment"> C: V 经过reduce之后的type</span></span><br><span class="line"><span class="comment">参考ShufferedRDD</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MapsideReduceRDD</span>[<span class="type">K</span>:<span class="type">ClassTag</span>, <span class="type">V</span>:<span class="type">ClassTag</span>, <span class="type">C</span>:<span class="type">ClassTag</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">   // 上游rdd，要求上游的rdd中数据已经转换成(key,value</span>)<span class="title">的形式</span></span></span><br><span class="line"><span class="class">  <span class="title">@transient</span> <span class="title">var</span> <span class="title">prev</span> </span>: <span class="type">RDD</span>[_ &lt;: <span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]</span><br><span class="line"></span><br><span class="line">) <span class="keyword">extends</span> <span class="type">RDD</span>[(<span class="type">K</span>,<span class="type">C</span>)](prev)&#123;</span><br><span class="line">  <span class="comment">// 需要一个aggregator去完成value的聚合, reduceByKey也会创建这个</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">var</span> aggregator : <span class="type">Option</span>[<span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]] = <span class="type">None</span></span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">setAggregator</span></span>(aggregator: <span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]):<span class="keyword">this</span>.<span class="keyword">type</span> =&#123;</span><br><span class="line">    <span class="keyword">this</span>.aggregator = <span class="type">Option</span>(aggregator)</span><br><span class="line">    <span class="keyword">this</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">compute</span></span>(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[(<span class="type">K</span>, <span class="type">C</span>)] = &#123;</span><br><span class="line">    <span class="comment">/* 创建一个ExternalAppendOnlyMap，这个数据结构是spark中提供的，插入</span></span><br><span class="line"><span class="comment"> .  (K,V)的数据，然后按照传递给他聚合方法完成(K,V)的聚合，返回(K,C)的数据</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">    <span class="keyword">val</span> externalMap = createExternalMap</span><br><span class="line">  <span class="comment">// 这里迭代上游rdd中(K,V)类型的记录</span></span><br><span class="line">    <span class="keyword">val</span> rddIter = dependencies(<span class="number">0</span>).rdd.asInstanceOf[<span class="type">RDD</span>[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]].iterator(split, context)</span><br><span class="line">    <span class="comment">// 插入到externalMap中</span></span><br><span class="line">    externalMap.insertAll(rddIter)</span><br><span class="line">   <span class="comment">// 返回</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">InterruptibleIterator</span>(context,</span><br><span class="line">      externalMap.iterator</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>] = firstParent[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]].partitions</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">createExternalMap</span></span>: <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>] = &#123;</span><br><span class="line">    require(aggregator.nonEmpty, <span class="string">"aggregator should not be empty"</span>)</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">      创建ExternalAppendOnlyMap， 它需要一下参数:</span></span><br><span class="line"><span class="comment">      - 一个V =&gt; C 类型的函数，用于迭代时发现某个key的第一个value，将它转换成C</span></span><br><span class="line"><span class="comment">     - 一个(C,V) =&gt; C类型的函数，用于将value合并到C上</span></span><br><span class="line"><span class="comment">     - 一个(C,C) =&gt; C类型的函数，将两个部分聚合的结果合并到一起</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>](aggregator.get.createCombiner, aggregator.get.mergeValue, aggregator.get.mergeCombiners)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>ExternalAppendOnlyMap会在必要时spill到磁盘</p>
+<h2 id="2-1-测试"><a href="#2-1-测试" class="headerlink" title="2.1 测试"></a>2.1 测试</h2><p>测试类如下：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">MapsideReduceTest</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>()</span><br><span class="line">    <span class="keyword">val</span> words = <span class="type">Seq</span>(<span class="type">Seq</span>(<span class="string">"failure"</span>,<span class="string">"count"</span>,<span class="string">"thief"</span>,<span class="string">"failure"</span>,<span class="string">"count"</span>),<span class="type">Seq</span>(<span class="string">"fortification"</span>,<span class="string">"peek"</span>,<span class="string">"lepta"</span>,<span class="string">"peek"</span>));</span><br><span class="line">    <span class="comment">// 分两个分区，第一个分区包含Seq("failure","count","thief","failure","count")</span></span><br><span class="line">    <span class="comment">// 这样相同的word只在一个分区里面，然后统计word count</span></span><br><span class="line">    <span class="keyword">val</span> wordsRDD = sc.parallelize(words, <span class="number">2</span>)</span><br><span class="line">    <span class="comment">// flatMap将Seq()展开，然后调用map转换成(failure,1)这种数据</span></span><br><span class="line">    <span class="keyword">val</span> wordsCount = wordsRDD.flatMap(seq =&gt; seq).map(word =&gt; (word,<span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> aggregator = createAggregator</span><br><span class="line">    <span class="keyword">val</span> mapsideReduceRDD = <span class="keyword">new</span> <span class="type">MapsideReduceRDD</span>[<span class="type">String</span>, <span class="type">Int</span>, <span class="type">Int</span>](wordsCount).setAggregator(aggregator)</span><br><span class="line">    mapsideReduceRDD.saveAsTextFile(<span class="string">"/Users/eric/mapsideReduce"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">createAggregator</span></span>: <span class="type">Aggregator</span>[<span class="type">String</span>,<span class="type">Int</span>,<span class="type">Int</span>] =&#123;</span><br><span class="line">    <span class="keyword">val</span> createCombiner: <span class="type">Int</span> =&gt; <span class="type">Int</span> = value =&gt; value</span><br><span class="line">    <span class="keyword">val</span> mergeValue : (<span class="type">Int</span>, <span class="type">Int</span>) =&gt; <span class="type">Int</span> = (mergedValue, newValue) =&gt; &#123;</span><br><span class="line">      mergedValue + newValue</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> mergeCombiner = mergeValue</span><br><span class="line"></span><br><span class="line">    <span class="keyword">new</span> <span class="type">Aggregator</span>[<span class="type">String</span>, <span class="type">Int</span>,<span class="type">Int</span>](createCombiner, mergeValue, mergeCombiner)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>提交后测试结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">产生2个输出文件以及内容：</span><br><span class="line">------ part-00000 -------</span><br><span class="line">(failure,2)</span><br><span class="line">(count,2)</span><br><span class="line">(thief,1)</span><br><span class="line"></span><br><span class="line">------- part-00001 ------</span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,2)</span><br><span class="line">(fortification,1)</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Spark/" rel="tag"># Spark</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/12/Spark内存管理/" rel="next" title="Spark内存管理">
+                <i class="fa fa-chevron-left"></i> Spark内存管理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/18/maven插件-1-使用插件/" rel="prev" title="maven插件(1) - 使用插件">
+                maven插件(1) - 使用插件 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1.  前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-解决方法"><span class="nav-number">2.</span> <span class="nav-text">2. 解决方法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-测试"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 测试</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
