@@ -86,12 +86,12 @@
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="本文基于spark 2.11 1. 前言在Spark Streaming(1)中介绍spark streaming工作流程中时，大致介绍了streaming job在运行时从stream中读取数据的流程：  Receiver运行在executor上接收数据，将数据转交给ReceiverSupervisor，然后ReceiverSupervisor利用blockmanager存储好数据，并将数据块信">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:image" content="http://yoursite.com/2017/05/09/Spark-Streaming-3-Receiver和ReceiverTacker/image/spark-streaming/spark-streaming-procedure.png">
-<meta property="og:updated_time" content="2018-01-21T15:19:43.000Z">
+<meta property="og:image" content="http://yoursite.com/image/spark-streaming/spark-streaming-procedure.png">
+<meta property="og:updated_time" content="2018-01-21T15:24:10.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Spark Streaming(3) - Receiver和ReceiverTacker">
 <meta name="twitter:description" content="本文基于spark 2.11 1. 前言在Spark Streaming(1)中介绍spark streaming工作流程中时，大致介绍了streaming job在运行时从stream中读取数据的流程：  Receiver运行在executor上接收数据，将数据转交给ReceiverSupervisor，然后ReceiverSupervisor利用blockmanager存储好数据，并将数据块信">
-<meta name="twitter:image" content="http://yoursite.com/2017/05/09/Spark-Streaming-3-Receiver和ReceiverTacker/image/spark-streaming/spark-streaming-procedure.png">
+<meta name="twitter:image" content="http://yoursite.com/image/spark-streaming/spark-streaming-procedure.png">
 
 
 
@@ -385,7 +385,7 @@
 <li>currentBuffer,receiver发过来的一条条数据先暂时存在这里，等待blockIntervalTimer汇集一起成block。</li>
 </ol>
 <p>下图描述了数据从receiver到ReceiverTracker的流程</p>
-<p><img src="image/spark-streaming/spark-streaming-procedure.png" alt=""></p>
+<p><img src="/image/spark-streaming/spark-streaming-procedure.png" alt="数据流转过程"></p>
 
       
     </div>
@@ -416,7 +416,7 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2017/10/17/spring生命周期管理/" rel="prev" title="spring生命周期管理">
+              <a href="/2017/10/17/Spring生命周期管理/" rel="prev" title="spring生命周期管理">
                 spring生命周期管理 <i class="fa fa-chevron-right"></i>
               </a>
             

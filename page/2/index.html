@@ -1173,7 +1173,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/22/spring-mvc工作机制/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/22/SpringMVC工作机制/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Li Weisheng">
@@ -1192,7 +1192,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/10/22/spring-mvc工作机制/" itemprop="url">spring mvc工作机制</a></h1>
+                <a class="post-title-link" href="/2017/10/22/SpringMVC工作机制/" itemprop="url">spring mvc工作机制</a></h1>
         
 
         <div class="post-meta">
@@ -1349,7 +1349,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/21/spring-mvc中一些注解/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/21/SpringMVC中的一些注解/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Li Weisheng">
@@ -1368,7 +1368,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/10/21/spring-mvc中一些注解/" itemprop="url">spring mvc中一些注解</a></h1>
+                <a class="post-title-link" href="/2017/10/21/SpringMVC中的一些注解/" itemprop="url">SpringMVC中的一些注解</a></h1>
         
 
         <div class="post-meta">
@@ -1380,7 +1380,7 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-21T21:20:01+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-21T13:39:13+08:00">
                 2017-10-21
               </time>
             
@@ -1431,9 +1431,9 @@
 </li>
 </ol>
 <p><strong>2. @SessionAttributes</strong><br>注解在类上（controller类上），它可以指定一些names或者types，如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SessionAttributes</span>(names = &#123;<span class="string">"lastAccessTime"</span>,<span class="string">"lastUpdateTime"</span>&#125;)</span><br></pre></td></tr></table></figure></p>
-<p>表示将model中属性为’lastAccessTime’和‘ lastUpdateTime’的值绑定到session上。配合注解在参数上的<code>methodA(@ModelAttribute(&quot;lastAccessTime&quot;)  Date lastAccessTime</code>一起使用,可以将session中‘ lastAccessTime’的值绑定到参数上。</p>
-<p>它的流程大概是:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">@ SessionAttributes实现时不是直接将name和value设置到HttpSession里的，而是保存在一个自己维护的store里，然后：</span><br><span class="line">1. 执行controller的method之前：</span><br><span class="line">    - 获得@ModelAttribute注解的参数名称(同时这些参数名称也在SessionAttributes的名称列表里)，从HttpSession中获取这个名称的值，将这些name-value对保存到自己的store里，</span><br><span class="line">    - 再写到一个新的Model里面</span><br><span class="line">2. 执行controller方法</span><br><span class="line">3. 执行controller方法之后获得新的Model，然后将Model中的name-value设置到HttpSession中</span><br><span class="line"></span><br><span class="line">综上这个过程，可以看出你在代码中调用HttpSession # removeAttribute是不会生效的，应为controller方法执行完后上面第3步还是设置HttpSession</span><br><span class="line"></span><br><span class="line">讲真我觉得SessionAttributes很少在开发中使用吧</span><br></pre></td></tr></table></figure></p>
-<p>持续更新…</p>
+<p>表示将model中名称为’lastAccessTime’和‘ lastUpdateTime’的属性值绑定到session上。配合使用在参数上的注解<code>@ModelAttribute</code>一起使用，如：</p>
+<p><code>methodA(@ModelAttribute(&quot;lastAccessTime&quot;)  Date lastAccessTime</code><br>则完成将session中‘ lastAccessTime’的值绑定到参数上。</p>
+<p>它的流程大概是:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">首先这里有一个SessionAttributeStore的接口，session上的属性值的设置和获取是通过它来完成的，默认实现类是DefaultSessionAttributeStore。</span><br><span class="line">DefaultSessionAttributeStore只是简单的将属性值设置到session中和从session中获取。</span><br><span class="line"></span><br><span class="line">1. 执行controller的method之前，需要解析method的参数并完成参数绑定：</span><br><span class="line">    - 获得@ModelAttribute注解的参数名称(同时这些参数名称也在SessionAttributes的名称列表里)，</span><br><span class="line">      从sessionAttributeStore中获取这个名称的值(也就是从session中获取值)，将值绑定定到method的参数上</span><br><span class="line">2. 执行controller方法</span><br><span class="line">3. 执行controller方法之后获得新的Model，遍历model中的所有name,value，</span><br><span class="line">   对于那些出现在`@SessionAttributes`中name，用这些name，value去更新sessionAttributeStore， 也就是设置到session中去。</span><br><span class="line"></span><br><span class="line">综上这个过程，可以看出你在代码中调用HttpSession # removeAttribute是不会生效的，因为为controller方法执行完后上面第3步还是设置session的属性值</span><br></pre></td></tr></table></figure></p>
 
           
         
@@ -1482,7 +1482,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/17/spring生命周期管理/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/17/Spring生命周期管理/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Li Weisheng">
@@ -1501,7 +1501,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/10/17/spring生命周期管理/" itemprop="url">spring生命周期管理</a></h1>
+                <a class="post-title-link" href="/2017/10/17/Spring生命周期管理/" itemprop="url">spring生命周期管理</a></h1>
         
 
         <div class="post-meta">
@@ -1788,7 +1788,7 @@
 <li>currentBuffer,receiver发过来的一条条数据先暂时存在这里，等待blockIntervalTimer汇集一起成block。</li>
 </ol>
 <p>下图描述了数据从receiver到ReceiverTracker的流程</p>
-<p><img src="image/spark-streaming/spark-streaming-procedure.png" alt=""></p>
+<p><img src="/image/spark-streaming/spark-streaming-procedure.png" alt="数据流转过程"></p>
 
           
         
