@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文来自《Programming in Scala》一书 Scala学习之特质（trait）1 特质的定义特质的定义和类相似，只是使用trait关键字代替class，如下: 12345trait TraitA&amp;#123;  def printA():Uint = &amp;#123;    println(&quot;trait TraitA&quot;)  &amp;#125;&amp;#125;  定义了trait之后可以使用exten">
+<meta property="og:type" content="article">
+<meta property="og:title" content="scala学习 - 特质">
+<meta property="og:url" content="http://yoursite.com/2017/06/25/scala学习-特质/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文来自《Programming in Scala》一书 Scala学习之特质（trait）1 特质的定义特质的定义和类相似，只是使用trait关键字代替class，如下: 12345trait TraitA&amp;#123;  def printA():Uint = &amp;#123;    println(&quot;trait TraitA&quot;)  &amp;#125;&amp;#125;  定义了trait之后可以使用exten">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-01-24T11:32:49.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="scala学习 - 特质">
+<meta name="twitter:description" content="本文来自《Programming in Scala》一书 Scala学习之特质（trait）1 特质的定义特质的定义和类相似，只是使用trait关键字代替class，如下: 12345trait TraitA&amp;#123;  def printA():Uint = &amp;#123;    println(&quot;trait TraitA&quot;)  &amp;#125;&amp;#125;  定义了trait之后可以使用exten">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/06/25/scala学习-特质/"/>
+
+
+
+
+
+  <title>scala学习 - 特质 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/06/25/scala学习-特质/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">scala学习 - 特质</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-25T19:32:15+08:00">
+                2017-06-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><strong>本文来自《Programming in Scala》一书</strong></p>
+<h1 id="Scala学习之特质（trait）"><a href="#Scala学习之特质（trait）" class="headerlink" title="Scala学习之特质（trait）"></a>Scala学习之特质（trait）</h1><h2 id="1-特质的定义"><a href="#1-特质的定义" class="headerlink" title="1 特质的定义"></a>1 特质的定义</h2><p>特质的定义和类相似，只是使用<code>trait</code>关键字代替<code>class</code>，如下:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitA</span></span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">printA</span></span>():<span class="type">Uint</span> = &#123;</span><br><span class="line">    println(<span class="string">"trait TraitA"</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>定义了trait之后可以使用extends或者with把它混入类中，extends类似java的extends关键字，一个类不可以多次extends；with可以像implements一样定义多个。</p>
+</li>
+<li><p>trait不能像class一样给主构造器提供参数</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ClassA</span>(<span class="params">name:<span class="type">String</span></span>)</span>&#123;...&#125;   <span class="comment">//这是合法的，可以提供主构造器参数</span></span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitA</span>(<span class="params">name:<span class="type">String</span></span>)</span>&#123;...&#125;   <span class="comment">//非法的</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>trait不想java的interface，trait可以实现方法，有点类似<code>abstract class</code>。</p>
+</li>
+</ol>
+<h2 id="2-可堆叠改变"><a href="#2-可堆叠改变" class="headerlink" title="2 可堆叠改变"></a>2 可堆叠改变</h2><p>一个类混合了多个特质，这些特质的方法可以堆叠在一起共同决定类的方法所表现出来的行为。</p>
+<p>想要使用trait的可堆叠功能，trait的方法里必须使用到super,像下面这样:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">IntQueue</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">val</span> buf = <span class="keyword">new</span> <span class="type">ArrayBuffer</span>[<span class="type">Int</span>]()</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i : <span class="type">Int</span>) = &#123;</span><br><span class="line">    println(<span class="string">"In IntQueue"</span>)</span><br><span class="line">    buf.append(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>():<span class="type">Int</span>=&#123;</span><br><span class="line">    println(<span class="string">"In IntQueue"</span>)</span><br><span class="line">    buf.remove(<span class="number">0</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">-----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitC</span> <span class="keyword">extends</span> <span class="title">IntQueue</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitC..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>(): <span class="type">Int</span> = <span class="keyword">super</span>.get()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>traitC 继承IntQueue，并在<code>put</code>方法中调用<code>super.put</code>，这并不代表就是调用IntQueue#put方法，<code>super.put</code>方法是动态的决定的，根据混入特质TraitC的类中TraitC所处位置有关，比如下面的代码：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">IntQueue</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">val</span> buf = <span class="keyword">new</span> <span class="type">ArrayBuffer</span>[<span class="type">Int</span>]()</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i : <span class="type">Int</span>) = &#123;</span><br><span class="line">    println(<span class="string">"In IntQueue"</span>)</span><br><span class="line">    buf.append(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>():<span class="type">Int</span>=&#123;</span><br><span class="line">    println(<span class="string">"In IntQueue"</span>)</span><br><span class="line">    buf.remove(<span class="number">0</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitA</span> <span class="keyword">extends</span> <span class="title">IntQueue</span> </span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitA..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>(): <span class="type">Int</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitA..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.get</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitB</span> <span class="keyword">extends</span>  <span class="title">IntQueue</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitB..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>(): <span class="type">Int</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitB..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.get()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">TestTrait</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">class</span> <span class="title">ExtendIntQueue</span> <span class="keyword">extends</span> <span class="title">IntQueue</span> <span class="keyword">with</span> <span class="title">TraitA</span> <span class="keyword">with</span> <span class="title">TraitB</span></span>&#123;</span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">      println(<span class="string">"In ExtendIntQueue..."</span>)</span><br><span class="line">      <span class="keyword">super</span>.put(i)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">get</span></span>(): <span class="type">Int</span> = &#123;</span><br><span class="line">      println(<span class="string">"In ExtendIntQueue..."</span>)</span><br><span class="line">      <span class="keyword">super</span>.get()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> etq = <span class="keyword">new</span> <span class="type">ExtendIntQueue</span></span><br><span class="line">    etq.put(<span class="number">0</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">继承体系：</span><br><span class="line">----&gt;  <span class="type">InitQueue</span></span><br><span class="line">|         ^</span><br><span class="line">|         |</span><br><span class="line">|      ----------</span><br><span class="line">|      |         |</span><br><span class="line">|    <span class="type">TraitA</span>    <span class="type">TraitB</span></span><br><span class="line">|      ^        ^</span><br><span class="line">|      |        |</span><br><span class="line">|      ----------</span><br><span class="line">|            |</span><br><span class="line">|------ <span class="type">ExtendIntQueue</span> </span><br><span class="line"></span><br><span class="line">上面代码最终输出：</span><br><span class="line"><span class="type">In</span> <span class="type">ExtendIntQueue</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">TraitB</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">TraitA</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">IntQueue</span></span><br></pre></td></tr></table></figure>
+<p>从上面代码的输出可以看出调用 </p>
+<p><code>ExtendIntQueue#put -&gt; TraitB#put -&gt; TraitA#put -&gt; IntQueue#put</code></p>
+<p>TraitB的<code>super.put</code> 被动态绑定成了TraitA, TraitA的<code>super.put</code>调用了IntQueue#put. 上面代码的继承结构比较复杂，scala是怎么动态决定super的绑定？有一条基本的原则首先：同一个类混入的特质里，右边的先于左边的，比如<code>class ExtendIntQueue extends IntQueue with TraitA with TraitB</code>，最右TraitB 先调用，它的super被绑定成TraitA。 上面这个过程被称为线性化，类ExtendIntQueue所有的超类被线性化，线性化后的继承体系就像<code>ExtendIntQueue -&gt;TraitB -&gt; TraitA -&gt; IntQueue</code>，因此put的调用变成了<code>ExtendIntQueue#put -&gt;TraitB#put -&gt; TraitA#put -&gt; IntQueue#put</code></p>
+<p>scala是怎么做线性化的？下面是一个更加复杂的例子：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">IntQueue</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">val</span> buf = <span class="keyword">new</span> <span class="type">ArrayBuffer</span>[<span class="type">Int</span>]()</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i : <span class="type">Int</span>) = &#123;</span><br><span class="line">    println(<span class="string">"In IntQueue"</span>)</span><br><span class="line">    buf.append(i)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitA</span> <span class="keyword">extends</span> <span class="title">IntQueue</span> <span class="keyword">with</span> <span class="title">TraitD</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitA..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitB</span> <span class="keyword">extends</span>  <span class="title">IntQueue</span> <span class="keyword">with</span> <span class="title">TraitD</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitB..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitC</span> <span class="keyword">extends</span> <span class="title">IntQueue</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitC..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">TraitD</span> <span class="keyword">extends</span> <span class="title">IntQueue</span></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    println(<span class="string">"In TraitD..."</span>)</span><br><span class="line">    <span class="keyword">super</span>.put(i)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">TestTrait</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">class</span> <span class="title">ExtendIntQueue</span> <span class="keyword">extends</span> <span class="title">IntQueue</span> <span class="keyword">with</span> <span class="title">TraitC</span> <span class="keyword">with</span> <span class="title">TraitA</span> <span class="keyword">with</span> <span class="title">TraitB</span></span>&#123;</span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">put</span></span>(i: <span class="type">Int</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">      println(<span class="string">"In ExtendIntQueue..."</span>)</span><br><span class="line">      <span class="keyword">super</span>.put(i)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> etq = <span class="keyword">new</span> <span class="type">ExtendIntQueue</span></span><br><span class="line">    etq.put(<span class="number">0</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">----------------------------------------------------------</span><br><span class="line">继承体系如下:</span><br><span class="line"></span><br><span class="line">               |--&gt;  <span class="type">IntQueue</span>  &lt;--------------------|    </span><br><span class="line">               |        ^ &lt;---- <span class="type">TraitD</span> &lt;----|       |</span><br><span class="line">               |        |          ^        |       |</span><br><span class="line">			   |		|          |        |       | </span><br><span class="line">               |        |------	<span class="type">TraitA</span>    <span class="type">TraitB</span> ---|</span><br><span class="line">			   |		|	      ^	    ^</span><br><span class="line">			   |        |          |        |</span><br><span class="line">               |       <span class="type">TraitC</span>      ----------</span><br><span class="line">               |          ^            ^</span><br><span class="line">               |          |            |</span><br><span class="line">               |---------------- <span class="type">ExtendIntQueue</span></span><br><span class="line"></span><br><span class="line">上面代码打印输出是：</span><br><span class="line"><span class="type">In</span> <span class="type">ExtendIntQueue</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">TraitB</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">TraitA</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">TraitD</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">TraitC</span>...</span><br><span class="line"><span class="type">In</span> <span class="type">IntQueue</span></span><br></pre></td></tr></table></figure>
+<p>顺序化按照符合这些原则（我自己理解的）：</p>
+<ol>
+<li>拓扑排序，被依赖不会早于依赖它的，比如上买呢ExtendIntQueue一定是最早的，它不依赖任何类，ExtendIntQueue之后，TraitA，TraitB，TraitC将不被依赖。</li>
+<li>从右到左，ExtendIntQueue之后，TraitA，TraitB，TraitC将不被依赖。但是从右到左一次是TraitB, TraitA, TraitC.</li>
+<li>深度搜索，比如从右到左先解析TraitB之后，此时TraitB的父类型从右到左是TraitD,IntQueue.  此时会尝试TraitD，但是TraitD还被TraitA依赖， IntQueue也被依赖所以不行把TraitD加入到顺序里</li>
+</ol>
+<p>用S来表示加入的顺序,D表示无下游依赖的类或特质，此时D初始值为（ExtendIntQueue）,S为（），照以上规则：</p>
+<ol>
+<li>首先加入ExtendIntQueue，它没有被依赖，此时TraitA，TraitB，TraitC不在被依赖。S为(ExtendIntQueue)</li>
+<li>需要从TraitA，TraitB, TraitC中选择，选最右TraitB, S为（ExtendIntQueue, TraitB), D为（TraitA,TraitC）. 判断TraitB的父类，如果有不再被依赖的比如TraitX，则加入S（这是一个递归往上的过程，如果TraitX上有TraitY, 还会判断是否要加入TraitY）</li>
+<li>从D中选TraitA加入S，此时TraitA最右，S为（ExtendIntQueue, TraitB, TraitA), D为(TraitC, TraitD)。 像2中TraitB一样，需要判断TraitA的父类是否有不被依赖的类，TraitD不在被依赖，加入S， S为（ExtendIntQueue, TraitB, TraitA，TraitD)。</li>
+<li>从D中选TraitC，S为（ExtendIntQueue, TraitB, TraitA，TraitD,TraitC),  此时IntQueue不在被依赖,加入D, D为(IntQueue).</li>
+<li>从D中选IntQueue, 最终S为 （ExtendIntQueue, TraitB, TraitA，TraitD,TraitC, IntQueue)</li>
+</ol>
+<p>总上顺序化后的继承体系类似:</p>
+<p><code>ExtendIntQueue -&gt; TraitB -&gt;TraitA -&gt; TraitD -&gt; TraitC -&gt; IntQueue</code></p>
+<p>也就有了上面代码中的输出。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/24/scala学习-隐式转换和隐式参数/" rel="next" title="scala学习 - 隐式转换和隐式参数">
+                <i class="fa fa-chevron-left"></i> scala学习 - 隐式转换和隐式参数
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/07/22/JUC之ExecutorCompletionService/" rel="prev" title="JUC之ExecutorCompletionService">
+                JUC之ExecutorCompletionService <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Scala学习之特质（trait）"><span class="nav-number">1.</span> <span class="nav-text">Scala学习之特质（trait）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-特质的定义"><span class="nav-number">1.1.</span> <span class="nav-text">1 特质的定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-可堆叠改变"><span class="nav-number">1.2.</span> <span class="nav-text">2 可堆叠改变</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

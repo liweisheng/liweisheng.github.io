@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文来自《Programming in Scala》一书 scala学习之隐式转换和隐式参数1  隐式类型转换scala编译器在对语言做类型检查时，发现参与运行的表达式类型A不符合类型语义要求，在抛出错误之前，会在当前作用域中查找是否存在A 到B类型的转换，是的转换之后通过类型检查，这种转换就是隐式类型转换：用户无需在代码中明确的调用函数将A转换成B，编译器帮你做了这件事。 比如： 123va">
+<meta property="og:type" content="article">
+<meta property="og:title" content="scala学习 - 隐式转换和隐式参数">
+<meta property="og:url" content="http://yoursite.com/2017/06/24/scala学习-隐式转换和隐式参数/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文来自《Programming in Scala》一书 scala学习之隐式转换和隐式参数1  隐式类型转换scala编译器在对语言做类型检查时，发现参与运行的表达式类型A不符合类型语义要求，在抛出错误之前，会在当前作用域中查找是否存在A 到B类型的转换，是的转换之后通过类型检查，这种转换就是隐式类型转换：用户无需在代码中明确的调用函数将A转换成B，编译器帮你做了这件事。 比如： 123va">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-01-24T11:30:41.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="scala学习 - 隐式转换和隐式参数">
+<meta name="twitter:description" content="本文来自《Programming in Scala》一书 scala学习之隐式转换和隐式参数1  隐式类型转换scala编译器在对语言做类型检查时，发现参与运行的表达式类型A不符合类型语义要求，在抛出错误之前，会在当前作用域中查找是否存在A 到B类型的转换，是的转换之后通过类型检查，这种转换就是隐式类型转换：用户无需在代码中明确的调用函数将A转换成B，编译器帮你做了这件事。 比如： 123va">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/06/24/scala学习-隐式转换和隐式参数/"/>
+
+
+
+
+
+  <title>scala学习 - 隐式转换和隐式参数 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/06/24/scala学习-隐式转换和隐式参数/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">scala学习 - 隐式转换和隐式参数</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-24T19:30:00+08:00">
+                2017-06-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>  <strong>本文来自《Programming in Scala》一书</strong></p>
+<h1 id="scala学习之隐式转换和隐式参数"><a href="#scala学习之隐式转换和隐式参数" class="headerlink" title="scala学习之隐式转换和隐式参数"></a>scala学习之隐式转换和隐式参数</h1><h2 id="1-隐式类型转换"><a href="#1-隐式类型转换" class="headerlink" title="1  隐式类型转换"></a>1  隐式类型转换</h2><p>scala编译器在对语言做类型检查时，发现参与运行的表达式类型A不符合类型语义要求，在抛出错误之前，会在当前作用域中查找是否存在A 到B类型的转换，是的转换之后通过类型检查，这种转换就是隐式类型转换：用户无需在代码中明确的调用函数将A转换成B，编译器帮你做了这件事。</p>
+<p>比如：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> list1 = <span class="type">List</span>(<span class="number">1</span>,<span class="number">2</span>)</span><br><span class="line"><span class="keyword">val</span> i = <span class="number">3</span></span><br><span class="line">list1 ::: i</span><br></pre></td></tr></table></figure>
+<p>上面代码无法通过scala编译器的类型检查，抛出如下错误:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; <span class="keyword">val</span> list1 = <span class="type">List</span>(<span class="number">1</span>,<span class="number">2</span>)</span><br><span class="line">list1: <span class="type">List</span>[<span class="type">Int</span>] = <span class="type">List</span>(<span class="number">1</span>, <span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> i = <span class="number">3</span></span><br><span class="line">i: <span class="type">Int</span> = <span class="number">3</span></span><br><span class="line"></span><br><span class="line">scala&gt; list1 ::: i</span><br><span class="line">&lt;console&gt;:<span class="number">28</span>: error: value ::: is not a member of <span class="type">Int</span></span><br><span class="line">       list1 ::: i</span><br><span class="line">             ^</span><br></pre></td></tr></table></figure>
+<p>原因在于<code>list1:::i</code>被转换成<code>list1.:::(i)</code>的方法调用，这个方法要求参数必须是集合类型，而i是Int型。一种解决办法是像这样<code>list1:::List(i)</code>在代码中显式的将 i 转换成List。另外一种方式就是像下面这样:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">IntWrapper</span></span>&#123;</span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToList</span></span>(i : <span class="type">Int</span>): <span class="type">List</span>[<span class="type">Int</span>] = &#123;</span><br><span class="line">    <span class="type">List</span>(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]) :<span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> l1 = <span class="type">List</span>(<span class="number">1</span>,<span class="number">2</span>);</span><br><span class="line">    <span class="keyword">val</span> l2 = l1 ::: <span class="number">3</span>;</span><br><span class="line">    print(l2)</span><br><span class="line">    <span class="comment">//输出List(1, 2, 3)</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>定义隐式转换方法<code>intToList</code>（必须使用implicit关键字），接收Int类型参数，转换成List[Int]。 上面代码编译器再碰到<code>l1:::3</code>时，发现类型不匹配，会在当前作用域寻找一种隐式转换使得 3 转换成<code>l1.:::()</code>调用能够接收的类型。</p>
+<p>还有一种会编译器会尝试将源类型隐式转换成目标类型的地方就是：在源类型上调用方法，可是该方法却不存在于源类型的class定义中,比如：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">IntWrapper</span>(<span class="params">i : <span class="type">Int</span></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">private</span>[<span class="type">IntWrapper</span>] <span class="keyword">var</span> l = <span class="type">List</span>[<span class="type">Int</span>](i)</span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">printSelf</span></span>(): <span class="type">Unit</span> =&#123;</span><br><span class="line">    println(<span class="string">"In IntWraper: "</span> + l)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">IntWrapper</span></span>&#123;</span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToIntWraper</span></span>(i : <span class="type">Int</span>):<span class="type">IntWrapper</span> = &#123;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">IntWrapper</span>(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]) :<span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> i = <span class="number">11</span>;</span><br><span class="line">    i.printSelf()</span><br><span class="line">    <span class="comment">//输出 In IntWraper: List(11)</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>main方法里定义了Int类型 i ，Int类型不存在方法printSelf，此时编译器会尝试寻找Int上的类型转换，使的转换后的目标的类型有方法printSelf，因此会使用<code>implicit def intToIntWraper</code>作为转换函数。</p>
+<p>上面这两种情形实际上可以归为一类，就是都需要将源类型转换成目标类型才能够通过类型检查。</p>
+<h2 id="2-隐式参数"><a href="#2-隐式参数" class="headerlink" title="2 隐式参数"></a>2 隐式参数</h2><p>scala编译器另一个会替你完成隐式操作的地方就是参数列表,比如定义了下面这样一个方法:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">IntWrapper</span> (<span class="params">i : <span class="type">Int</span></span>)</span>&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">private</span>[<span class="type">IntWrapper</span>] <span class="keyword">var</span> l = <span class="type">List</span>(i)</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">map</span></span>(<span class="keyword">implicit</span> m : <span class="type">Int</span> =&gt; <span class="type">List</span>[<span class="type">Int</span>]):<span class="type">List</span>[<span class="type">List</span>[<span class="type">Int</span>]] = &#123;</span><br><span class="line">    l.map(m)</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">IntWrapper</span></span>&#123;</span><br><span class="line">  <span class="keyword">implicit</span> <span class="keyword">val</span> f =(i : <span class="type">Int</span>) =&gt; <span class="type">List</span>(i + <span class="number">1</span>)</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]) :<span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> intWraper = <span class="keyword">new</span> <span class="type">IntWrapper</span>(<span class="number">1</span>)</span><br><span class="line">    <span class="comment">//map使用隐式参数，编译器在当前可见作用域中查找到 f 作为map的参数</span></span><br><span class="line">    print(intWraper.map)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>方法map的参数列表使用了<code>implicit</code>关键字，表示你在使用map时，可以不提供参数，让编译器去替你完成在方法调用的作用域中去查找满足参数类型的隐式转换。</p>
+<p>上面实例代码中表，使用隐式参数时，不仅要求map的形式参数列表使用implicit，提供的隐式实际参数 f 也需要使用implicit。</p>
+<h2 id="3-何时发生隐式操作"><a href="#3-何时发生隐式操作" class="headerlink" title="3 何时发生隐式操作"></a>3 何时发生隐式操作</h2><p>其实1，2已经说明了scala何时会尝试使用隐式操作：</p>
+<ol>
+<li><p>需要转换成目标类型</p>
+<p>比如函数 f 的类型A =&gt; B，使用类型为C（假设C不是A的子类）的变量c调用 <code>f(c)</code>, 编译器就会需要尝试寻找将 C =&gt; A的隐式类型转换。</p>
+</li>
+<li><p>在原类型上调用不存在的方法</p>
+<p>比如class A存在方法<code>def fA()…</code>，在class B的实例b上调用<code>b.fA()</code>,假设class B没有成员方法fA，此时会尝试 B =&gt; A的隐式转换.</p>
+</li>
+<li><p>隐式参数</p>
+</li>
+</ol>
+<h2 id="4-隐式操作的一些规则或者约束"><a href="#4-隐式操作的一些规则或者约束" class="headerlink" title="4 隐式操作的一些规则或者约束"></a>4 隐式操作的一些规则或者约束</h2><h3 id="4-1-作用域规则"><a href="#4-1-作用域规则" class="headerlink" title="4.1 作用域规则"></a>4.1 作用域规则</h3><p>隐式转换必须以单一标识符的形式出现在需要转换的地方所处的作用域中，或者与转换的源类型或目标类型关联在一起。分别解释一下：</p>
+<ol>
+<li><p>单一标识符是指不能以xxx.f这种形式才能使A转换成B类型</p>
+<p>假设有隐式转换<code>f</code>使得A转换成B，编译器在插入代码时必须是<code>f(A)</code>,而不需要在f前面插入包或者类的前缀，比如下面这种就是不行的：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.eric.learn.`<span class="keyword">implicit</span>`.convertutils</span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ConvertUtils</span></span>&#123;</span><br><span class="line">  <span class="comment">//Int 到 List的隐式转换</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToList</span></span>(i : <span class="type">Int</span>): <span class="type">List</span>[<span class="type">Int</span>] = &#123;</span><br><span class="line">    <span class="type">List</span>(i)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-------------------------------------------------------------------</span><br><span class="line"><span class="keyword">package</span> me.eric.learn.`<span class="keyword">implicit</span>`</span><br><span class="line"><span class="comment">//引入ConvertUtils</span></span><br><span class="line"><span class="keyword">import</span> convertutils.<span class="type">ConvertUtils</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">IntWrapper</span></span>&#123;&#125;</span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">IntWrapper</span></span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]) :<span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> l1 = <span class="type">List</span>(<span class="number">1</span>,<span class="number">2</span>)</span><br><span class="line">    <span class="comment">//此处需要将 3 隐式转换成List，编译器无法直接应用 l1:::intToList(3)，当在代码中显式调用时也得这样: l1:::ConvertUtils.intToList(3)。不符合单一标识符的原则</span></span><br><span class="line">    <span class="keyword">val</span> l2 = l1 ::: <span class="number">3</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//上面代码要想可以应用隐式转换，可以使用“import convertutils.ConvertUtils.intToList“引入</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>与转换的源类型关联</p>
+<p>和后面介绍的与转换的目标类型关联一样，这是单一标志符原则的例外。原类型关联是指：假设需要A - &gt; B类型转换，那么转换操作可以以<code>implicit def ...</code>这种形式定义在<code>object A</code>里，如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.eric.learn.`<span class="keyword">implicit</span>`</span><br><span class="line"></span><br><span class="line"><span class="comment">//StringWrapper是源类型，包装一下String</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">StringWrapper</span>(<span class="params">s : <span class="type">String</span></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">val</span> s1 = s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">StringWrapper</span></span>&#123;</span><br><span class="line">  <span class="comment">//隐式操作和源类型关联，StringWrapper -&gt; String转换</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">stringWrapperToString</span></span>(sw : <span class="type">StringWrapper</span>):<span class="type">String</span> = &#123;</span><br><span class="line">    sw.s1</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line"> <span class="comment">//隐式操作， String -&gt; StringWrapper的转换</span></span><br><span class="line"> <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">stringToStringWrapper</span></span>(s : <span class="type">String</span>):<span class="type">StringWrapper</span>=&#123;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">StringWrapper</span>(s)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">---------------------------------------------------------------------------</span><br><span class="line"></span><br><span class="line"><span class="keyword">package</span> me.eric.learn.`<span class="keyword">implicit</span>`.convertutils</span><br><span class="line"><span class="comment">//这种引入方式不符合单一标识符原则</span></span><br><span class="line"><span class="keyword">import</span> me.eric.learn.`<span class="keyword">implicit</span>`.<span class="type">StringWrapper</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">StringWrapperUtils</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">split</span></span>(sw : <span class="type">StringWrapper</span>):<span class="type">String</span>[]=&#123;</span><br><span class="line">    <span class="comment">//StringWrapper关联的stringWrapperToString,sw可以隐式转换成String，调用split方法</span></span><br><span class="line">    sw.split(<span class="string">" "</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>与目标类型关联</p>
+<p>即A -&gt; B的转换可以定义在object B中，以2中代码为例: StringWrapperUtils#split接收参数类型为StringWrapper, 此时传一个String类型是非法的，显然无法在Object String里增加String -&gt; StringWrapper的转换，但是可以在StringWrapper里增加，如同例子中 <code>implicit def stringToStringWrapper...</code>那样。</p>
+</li>
+</ol>
+<h3 id="4-2-无歧义规则"><a href="#4-2-无歧义规则" class="headerlink" title="4.2 无歧义规则"></a>4.2 无歧义规则</h3><p>无歧义规则是指不可以有两个隐式转换 convert1 和convert2 使得转换应用在A上都可以完成类型检查。比如下面的代码就通不过编译;</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">IntWrapper</span></span>&#123;</span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToList</span></span>(i : <span class="type">Int</span>): <span class="type">List</span>[<span class="type">Int</span>] = &#123;</span><br><span class="line">    <span class="type">List</span>(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToList1</span></span>(i : <span class="type">Int</span>): <span class="type">List</span>[<span class="type">Int</span>] = &#123;</span><br><span class="line">    <span class="type">List</span>(i + <span class="number">1</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// implicit val f =(i : Int) =&gt; List(i + 2)           </span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="function"><span class="keyword">def</span> <span class="title">intToIntWraper</span></span>(i : <span class="type">Int</span>):<span class="type">IntWrapper</span> = &#123;</span><br><span class="line">    <span class="keyword">new</span> <span class="type">IntWrapper</span>(i)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args : <span class="type">Array</span>[<span class="type">String</span>]) :<span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> l1 = <span class="type">List</span>(<span class="number">1</span>,<span class="number">2</span>)</span><br><span class="line">    <span class="keyword">val</span> l2 = l1 ::: <span class="number">3</span></span><br><span class="line">    print(l2)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>忽略上面代码注释部分，有两个Int到List的转换：intToList和intToList1,存在歧义。</p>
+<p>但是奇怪的是，去掉上面代码的注释，却又能通过编译，且运行结果显示使用了<code>implicit val f =(i : Int) =&gt; List(i + 2)</code>这个隐式转换。不知道为什么。</p>
+<h3 id="4-3-单一调用规则"><a href="#4-3-单一调用规则" class="headerlink" title="4.3 单一调用规则"></a>4.3 单一调用规则</h3><p>如果需要对类型A转换，只会进行一次转换，比如方法<code>f(c : C)</code>接收C类型，此时存在 <code>A -&gt; B</code>的转换fAB,<code>B -&gt; C</code>的转换fBC，<code>f(a)</code>的调用不会成功，不会编译器不会应用<code>f(fBC(fAB(a)))</code> 把a转换成C类型</p>
+<h3 id="4-4-显式操作优先"><a href="#4-4-显式操作优先" class="headerlink" title="4.4 显式操作优先"></a>4.4 显式操作优先</h3><p>其实很简单，能不进行隐式转换就能通过类型检查的话，就不使用隐式转换。比如方法<code>def f(a : A)</code>，变量b(类型为B，继承A)，调用<code>f(b)</code>，即便此时有B -&gt; A的转换也不会应用。</p>
+<h2 id="5-隐式参数"><a href="#5-隐式参数" class="headerlink" title="5. 隐式参数"></a>5. 隐式参数</h2><p>4中的规则同样适用于隐式参数，隐式参数适用方式如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.eric.learn.`<span class="keyword">implicit</span>`</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ImplicitParam</span> </span>&#123;</span><br><span class="line">  <span class="comment">// implicit 声明隐式参数</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">echo</span></span>(i : <span class="type">Int</span>)(<span class="keyword">implicit</span> s:<span class="type">String</span>, l:<span class="type">Long</span>) =&#123;</span><br><span class="line">    println((i,s,l))</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImplicitParam</span></span>&#123;</span><br><span class="line">  <span class="comment">// 作为隐式值应用于ImplicitParam#echo方法</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="keyword">val</span> s = <span class="string">"hello"</span></span><br><span class="line">  <span class="keyword">implicit</span> <span class="keyword">val</span> l = <span class="number">100</span>L</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args:<span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> ip = <span class="keyword">new</span> <span class="type">ImplicitParam</span>()</span><br><span class="line">    <span class="comment">//只需要指定参数 i的值，编译器将应用 s,l作为隐式参数的实参,相当于调用ip.echo(i)(s,l)</span></span><br><span class="line">    ip.echo(<span class="number">1</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>对于柯里化函数，隐式参数只能出现最后一组参数列表上,只能是形如<code>def f(...)(...)(implicit ...)</code>这样.</p>
+</li>
+<li><p>隐式值不仅可以用于补足隐式参数，这个隐式值后续还能作为一种可行的隐式转换作用于方法体中的隐式类型转换，比如下面：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.eric.learn.`<span class="keyword">implicit</span>`</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ImplicitParam</span> </span>&#123;</span><br><span class="line">  <span class="comment">//需要 Int =&gt; List[Int]类型的隐式参数</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">echo</span></span>(<span class="keyword">implicit</span>  intToList : <span class="type">Int</span> =&gt; <span class="type">List</span>[<span class="type">Int</span>]) = &#123;</span><br><span class="line">    <span class="keyword">val</span> list = <span class="type">List</span>(<span class="number">1</span>,<span class="number">2</span>)</span><br><span class="line">    <span class="keyword">val</span> i = <span class="number">3</span></span><br><span class="line">    <span class="comment">//此处需要隐式转换，将i转换成合适的目标类型，此处 intToList将作为一种可行的隐式转换作用于i上</span></span><br><span class="line">    println(i ::: list)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">ImplicitParam</span></span>&#123;</span><br><span class="line">  <span class="comment">//定义 Int =&gt; List[Int]的隐式值</span></span><br><span class="line">  <span class="keyword">implicit</span>  <span class="keyword">val</span> f = (i : <span class="type">Int</span>) =&gt; <span class="type">List</span>(i)</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args:<span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> ip = <span class="keyword">new</span> <span class="type">ImplicitParam</span>()</span><br><span class="line">    <span class="comment">// f 作为隐式值被应用</span></span><br><span class="line">    ip.echo</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>​</p>
+</li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/10/Spark-job提交过程/" rel="next" title="Spark job提交过程源码解析">
+                <i class="fa fa-chevron-left"></i> Spark job提交过程源码解析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/06/25/scala学习-特质/" rel="prev" title="scala学习 - 特质">
+                scala学习 - 特质 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#scala学习之隐式转换和隐式参数"><span class="nav-number">1.</span> <span class="nav-text">scala学习之隐式转换和隐式参数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-隐式类型转换"><span class="nav-number">1.1.</span> <span class="nav-text">1  隐式类型转换</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-隐式参数"><span class="nav-number">1.2.</span> <span class="nav-text">2 隐式参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-何时发生隐式操作"><span class="nav-number">1.3.</span> <span class="nav-text">3 何时发生隐式操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-隐式操作的一些规则或者约束"><span class="nav-number">1.4.</span> <span class="nav-text">4 隐式操作的一些规则或者约束</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-作用域规则"><span class="nav-number">1.4.1.</span> <span class="nav-text">4.1 作用域规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-无歧义规则"><span class="nav-number">1.4.2.</span> <span class="nav-text">4.2 无歧义规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-单一调用规则"><span class="nav-number">1.4.3.</span> <span class="nav-text">4.3 单一调用规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-显式操作优先"><span class="nav-number">1.4.4.</span> <span class="nav-text">4.4 显式操作优先</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-隐式参数"><span class="nav-number">1.5.</span> <span class="nav-text">5. 隐式参数</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

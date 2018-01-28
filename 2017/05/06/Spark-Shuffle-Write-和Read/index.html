@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文基于spark源码2.11 1. 前言shuffle是spark job中一个重要的阶段，发生在map和reduce之间，涉及到map到reduce之间的数据的移动，以下面一段wordCount为例：123456789def main(args:Array[String])&amp;#123;    val sparkConf = new SparkConf().setAppName(&amp;quot;Lo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Shuffle Write 和Read">
+<meta property="og:url" content="http://yoursite.com/2017/05/06/Spark-Shuffle-Write-和Read/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文基于spark源码2.11 1. 前言shuffle是spark job中一个重要的阶段，发生在map和reduce之间，涉及到map到reduce之间的数据的移动，以下面一段wordCount为例：123456789def main(args:Array[String])&amp;#123;    val sparkConf = new SparkConf().setAppName(&amp;quot;Lo">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/image/spark/wordCount-shuffle.png">
+<meta property="og:image" content="http://yoursite.com/image/spark/shufflewrite.png">
+<meta property="og:image" content="http://yoursite.com/image/spark/shuffle-map-side-merge.png">
+<meta property="og:updated_time" content="2018-01-28T01:19:12.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark Shuffle Write 和Read">
+<meta name="twitter:description" content="本文基于spark源码2.11 1. 前言shuffle是spark job中一个重要的阶段，发生在map和reduce之间，涉及到map到reduce之间的数据的移动，以下面一段wordCount为例：123456789def main(args:Array[String])&amp;#123;    val sparkConf = new SparkConf().setAppName(&amp;quot;Lo">
+<meta name="twitter:image" content="http://yoursite.com/image/spark/wordCount-shuffle.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/06/Spark-Shuffle-Write-和Read/"/>
+
+
+
+
+
+  <title>Spark Shuffle Write 和Read | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/06/Spark-Shuffle-Write-和Read/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark Shuffle Write 和Read</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-06T09:12:46+08:00">
+                2017-05-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><em>本文基于spark源码2.11</em></p>
+<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>shuffle是spark job中一个重要的阶段，发生在map和reduce之间，涉及到map到reduce之间的数据的移动，以下面一段wordCount为例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">def main(args:Array[String])&#123;</span><br><span class="line">    val sparkConf = new SparkConf().setAppName(&quot;Log Query&quot;)</span><br><span class="line">    val sc = new SparkContext(sparkConf)</span><br><span class="line">    val lines = sc.textFile(&quot;README.md&quot;,3)</span><br><span class="line">    val words = lines.flatMap(line =&gt; line.split(&quot; &quot;))</span><br><span class="line">    val wordOne = words.map(word =&gt; (word,1))</span><br><span class="line">    val wordCount = wordOne.reduceByKey(_ + _,3)</span><br><span class="line">    wordCount.foreach(println)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其RDD的转换如下：</p>
+<p><img src="/image/spark/wordCount-shuffle.png" alt="wordCount-shuffle"></p>
+<p>上图中map和flatMap这种转换只会产生rdd之间的窄依赖，因此对一个分区上进行map和flatMap可以如同流水线一样只在同一台的机器上尽心，不存在多个节点之间的数据移动，而reduceByKey这样的操作，涉及到需要将相同的key做聚合操作。上图中Stage1中按key做hash 到三个分区做reduce操作，对于Stage1中任意一个partition而言，其输入可能存在与上游Stage0中每一个分区中，因此需要从上游的每一个partition所在的机器上拉取数据，这个过程称为shuffle。</p>
+<blockquote>
+<p>解释一下： spark的stage划分就是以shuffle依赖为界限划分的，上图中只存在一次shuffle操作，所以被划分为两个stage</p>
+</blockquote>
+<p>从上图中可以看出shuffle首先涉及到stage0最后一个阶段需要写出map结果， 以及stage1从上游stage0中每一个partition写出的数据中读取属于当前partition的数据。</p>
+<h1 id="2-Shuffle-Write"><a href="#2-Shuffle-Write" class="headerlink" title="2. Shuffle Write"></a>2. Shuffle Write</h1><p>spark中rdd由多个partition组成，任务运行作用于partition。spark有两种类型的task：</p>
+<ol>
+<li>ShuffleMapTask,  负责rdd之间的transform，map输出也就是shuffle write</li>
+<li>ResultTask, job最后阶段运行的任务，也就是action（上面代码中foreach就是一个action，一个action会触发生成一个job并提交）操作触发生成的task，用来收集job运行的结果并返回结果到driver端。</li>
+</ol>
+<p><em>“关于job的创建，stage的划分以及task的提交在另一篇文章中介绍(待填坑)”</em></p>
+<p>shuffle write的操作发生在ShuffleMapTask#runTask中，其代码如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">override def runTask(context: TaskContext): MapStatus = &#123;</span><br><span class="line">    // Deserialize the RDD using the broadcast variable.</span><br><span class="line">    val threadMXBean = ManagementFactory.getThreadMXBean</span><br><span class="line">    val deserializeStartTime = System.currentTimeMillis()</span><br><span class="line">    val deserializeStartCpuTime = if (threadMXBean.isCurrentThreadCpuTimeSupported) &#123;</span><br><span class="line">      threadMXBean.getCurrentThreadCpuTime</span><br><span class="line">    &#125; else 0L</span><br><span class="line">    val ser = SparkEnv.get.closureSerializer.newInstance()</span><br><span class="line">    val (rdd, dep) = ser.deserialize[(RDD[_], ShuffleDependency[_, _, _])](</span><br><span class="line">      ByteBuffer.wrap(taskBinary.value), Thread.currentThread.getContextClassLoader)</span><br><span class="line">    _executorDeserializeTime = System.currentTimeMillis() - deserializeStartTime</span><br><span class="line">    _executorDeserializeCpuTime = if (threadMXBean.isCurrentThreadCpuTimeSupported) &#123;</span><br><span class="line">      threadMXBean.getCurrentThreadCpuTime - deserializeStartCpuTime</span><br><span class="line">    &#125; else 0L</span><br><span class="line"></span><br><span class="line">    var writer: ShuffleWriter[Any, Any] = null</span><br><span class="line">    try &#123;</span><br><span class="line">      val manager = SparkEnv.get.shuffleManager</span><br><span class="line">      writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)</span><br><span class="line">      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ &lt;: Product2[Any, Any]]])</span><br><span class="line">      writer.stop(success = true).get</span><br><span class="line">    &#125; catch &#123;</span><br><span class="line">      case e: Exception =&gt;</span><br><span class="line">        try &#123;</span><br><span class="line">          if (writer != null) &#123;</span><br><span class="line">            writer.stop(success = false)</span><br><span class="line">          &#125;</span><br><span class="line">        &#125; catch &#123;</span><br><span class="line">          case e: Exception =&gt;</span><br><span class="line">            log.debug(&quot;Could not stop writer&quot;, e)</span><br><span class="line">        &#125;</span><br><span class="line">        throw e</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>调用<code>val (rdd, dep) = ser.deserialize(...)</code>获取任务运行的rdd和shuffle dep，这是在由DAGScheduler序列化然后提交到当前任务运行的executor上的。</p>
+<p>调用<code>writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)</code> 获得shuffle writer，调用<code>writer.write(rdd.iterator)</code>写出map output。idd.iterator在迭代过程中，会往上游一直追溯当前rdd依赖的rdd，然后从上至下调用rdd.compute()完成数据计算并返回iterator迭代转换计算的结果。 此处manager在SparkEnv中实例化微SortShuffleManager，下面是SortShuffleManager#getWriter方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">override def getWriter[K, V](</span><br><span class="line">     handle: ShuffleHandle,</span><br><span class="line">     mapId: Int,</span><br><span class="line">     context: TaskContext): ShuffleWriter[K, V] = &#123;</span><br><span class="line">   numMapsForShuffle.putIfAbsent(</span><br><span class="line">     handle.shuffleId, handle.asInstanceOf[BaseShuffleHandle[_, _, _]].numMaps)</span><br><span class="line">   val env = SparkEnv.get</span><br><span class="line">   handle match &#123;</span><br><span class="line">     case unsafeShuffleHandle: SerializedShuffleHandle[K @unchecked, V @unchecked] =&gt;</span><br><span class="line">       new UnsafeShuffleWriter(</span><br><span class="line">         env.blockManager,</span><br><span class="line">         shuffleBlockResolver.asInstanceOf[IndexShuffleBlockResolver],</span><br><span class="line">         context.taskMemoryManager(),</span><br><span class="line">         unsafeShuffleHandle,</span><br><span class="line">         mapId,</span><br><span class="line">         context,</span><br><span class="line">         env.conf)</span><br><span class="line">     case bypassMergeSortHandle: BypassMergeSortShuffleHandle[K @unchecked, V @unchecked] =&gt;</span><br><span class="line">       new BypassMergeSortShuffleWriter(</span><br><span class="line">         env.blockManager,</span><br><span class="line">         shuffleBlockResolver.asInstanceOf[IndexShuffleBlockResolver],</span><br><span class="line">         bypassMergeSortHandle,</span><br><span class="line">         mapId,</span><br><span class="line">         context,</span><br><span class="line">         env.conf)</span><br><span class="line">     case other: BaseShuffleHandle[K @unchecked, V @unchecked, _] =&gt;</span><br><span class="line">       new SortShuffleWriter(shuffleBlockResolver, other, mapId, context)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p><em>”上面提到shuffleManager被实例化为SortShuffleManager，老版本里还有HashShuffleManager，似乎不用了，这里有一篇两种方式的性能比较文章<a href="https://www.iteblog.com/archives/1138.html" target="_blank" rel="noopener">SortShuffleManager和HashShuffleManager性能比较</a>“</em></p>
+<p>有三种类型的ShuffleWriter，取决于handle的类型。</p>
+<ol>
+<li>UnsafeShuflleWriter, 不清楚</li>
+<li>BypassMergeSortShuffleWriter, 这个writer会根据reduce的个数n（reduceByKey中指定的参数，有partitioner决定）创建n个临时文件，然后计算iterator每一个key的hash，放到对应的临时文件中，最后合并这些临时文件成一个文件，同时还是创建一个索引文件来记录每一个临时文件在合并后的文件中偏移。当reducer取数据时根据reducer partitionid就能以及索引文件就能找到对应的数据块。</li>
+<li>SortShuffleWriter, 会在map做key的aggregate操作，（key,value）会先在保存在内存里，并按照用户自定义的aggregator做key的聚合操作，并在达到一定的内存大小后，对内存中已有的记录按（partition，key）做排序，然后保存到磁盘上的临时文件。最终对生成的文件再做一次merge操作。</li>
+</ol>
+<h2 id="2-1-BypassMergeSortShuffleWriter"><a href="#2-1-BypassMergeSortShuffleWriter" class="headerlink" title="2.1 BypassMergeSortShuffleWriter"></a>2.1 BypassMergeSortShuffleWriter</h2><p><strong>1.  什么情况下使用</strong><br>不需要在map端做combine操作，且partitioner产生的分区数量（也就是reducer的个数）小于配置文件中<code>spark.shuffle.sort.bypassMergeThreshold</code>定义的大小（默认值是200）</p>
+<p><strong>2. 如何写出map output</strong><br>下图是BypassMergeSortShuffleWriter写出数据的方式：</p>
+<p><img src="/image/spark/shufflewrite.png" alt="shufflewrite"></p>
+<p>输入数据是（nation,city）的键值对，调用<code>reduceByKey(_ + &quot;,&quot; + _,3)</code>。运行在在partition-0上的ShuffleMapTask使用BypassMergeSortShuffleWriter#write的过程如下：</p>
+<ol>
+<li>根据reducer的个数（partitioner决定）n 创建n个<code>DiskBlockObjectWriter</code>,每一个创建一个临时文件，临时文件命名规则为<code>temp_shuffle_uuid</code>,也就是每一个临时文件放的就是下游一个reduce的输入数据。</li>
+<li>迭代访问输入的数据记录，调用<code>partitioner.getPartition(key)</code>计算出记录的应该落在哪一个reducer拥有的partition，然后索引到对应的<code>DiskBlockObjectWriter</code>对象，写出key, value</li>
+<li>创建一个名为<code>shuffle_shuffleid_mapid_0.uuid</code>这样的临时且绝对不会重复的文件，然后将1中生成的所有临时文件写入到这个文件中，写出的顺序是partitionid从小到大开始的（这里之所以使用uuid创建文件，主要是不使用uuid的话可能有另外一个任务也写出过相同的文件，文件名中的0本来应该是reduceid,但是由于合并到只剩一个文件，就用0就行了）。</li>
+<li>写出索引文件，索引文件名为<code>shuffle_shuffleid_mapid_0.index.uuid</code>(使用uuid和3中的原因是一样的)。由于map的输出数据被合并到一个文件中，reducer在读取数据时需要根据索引文件快速定位到应该读取的数据在文件中的偏移和大小。<ol>
+<li>索引文件只顺序写出partition_0 ~ partition_n的偏移的值</li>
+<li>还需要将3中<code>shuffle_shuffleid_mapid_0.uuid</code>重命名为<code>`shuffle_shuffleid_mapid_0</code>, 过程是验证一下是不是已经存在这么一个文件以及文件的长度是否等于 1 中所有临时文件相加的大小，不是的话就重命名索引文件和数据文件（去掉uuid）。否则的话表示先前已经有一个任务成功写出了数据，直接删掉临时索引和数据文件，返回。</li>
+</ol>
+</li>
+</ol>
+<p>以上就是BypassMergeSortShuffleWriter写数据的方式。有如下特点：</p>
+<ol>
+<li>map端没有按照key做排序，也没有按照key做聚合操作, [(China, Beijing),(China,Hefei),(China,Shanghai)]如果在map端聚合的话会变成(China,“Beijing,Hefei,Shanghai”)。</li>
+<li>如果有M格mapper，N格reducer，那么会产生M*N个临时文件，但是最终会合并生成M个数据文件，M个索引文件。</li>
+</ol>
+<h2 id="2-2-SortShuffleWriter"><a href="#2-2-SortShuffleWriter" class="headerlink" title="2.2 SortShuffleWriter"></a>2.2 SortShuffleWriter</h2><p>下面是SortShuffleWrite#write方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">override def write(records: Iterator[Product2[K, V]]): Unit = &#123;</span><br><span class="line">    sorter = if (dep.mapSideCombine) &#123;</span><br><span class="line">      require(dep.aggregator.isDefined, &quot;Map-side combine without Aggregator specified!&quot;)</span><br><span class="line">      new ExternalSorter[K, V, C](</span><br><span class="line">        context, dep.aggregator, Some(dep.partitioner), dep.keyOrdering, dep.serializer)</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">      // In this case we pass neither an aggregator nor an ordering to the sorter, because we don&apos;t</span><br><span class="line">      // care whether the keys get sorted in each partition; that will be done on the reduce side</span><br><span class="line">      // if the operation being run is sortByKey.</span><br><span class="line">      new ExternalSorter[K, V, V](</span><br><span class="line">        context, aggregator = None, Some(dep.partitioner), ordering = None, dep.serializer)</span><br><span class="line">    &#125;</span><br><span class="line">    sorter.insertAll(records)</span><br><span class="line"></span><br><span class="line">    // Don&apos;t bother including the time to open the merged output file in the shuffle write time,</span><br><span class="line">    // because it just opens a single file, so is typically too fast to measure accurately</span><br><span class="line">    // (see SPARK-3570).</span><br><span class="line">    val output = shuffleBlockResolver.getDataFile(dep.shuffleId, mapId)</span><br><span class="line">    val tmp = Utils.tempFileWith(output)</span><br><span class="line">    try &#123;</span><br><span class="line">      val blockId = ShuffleBlockId(dep.shuffleId, mapId, IndexShuffleBlockResolver.NOOP_REDUCE_ID)</span><br><span class="line">      val partitionLengths = sorter.writePartitionedFile(blockId, tmp)</span><br><span class="line">      shuffleBlockResolver.writeIndexFileAndCommit(dep.shuffleId, mapId, partitionLengths, tmp)</span><br><span class="line">      mapStatus = MapStatus(blockManager.shuffleServerId, partitionLengths)</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">      if (tmp.exists() &amp;&amp; !tmp.delete()) &#123;</span><br><span class="line">        logError(s&quot;Error while deleting temp file $&#123;tmp.getAbsolutePath&#125;&quot;)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>先创建了一个ExternalSorter，sort.insertAll(records)会将数据写到多个磁盘文件中。</li>
+<li>接下来和BypassMergeSortShuffleWriter类似，创建一个名为<code>shuffle_shuffleid_mapid_0.uuid</code>的这种唯一的临时数据文件，将 1 中的多个磁盘文件合并写出到这个临时数据文件中，并写出索引文件，最终的数据文件中相同分区的数据一定是连续分布的，这样就能根据索引文件中的偏移值快速定位到对应分区的数据。</li>
+</ol>
+<p>由于写数据的核心在ExternalSorter#insertAll中，下文会主要介绍ExternalSorter。</p>
+<p><strong>1. 什么情况下使用</strong><br> ShuffleredRDD#mapSideCombine为true，且定义了aggregate的情况下会使用SortShuffleWriter。<br><strong>2. 原理</strong><br>根据mapSizeCombine是否为true，SortShuffleWriter在写出map output时也会做不同处理，为true时会按用户自定聚合方法按key聚合,并按照（partitionId，key）排序（没指定key的排序方法时就只根据partitionid排序），然后写出到磁盘文件;为false时不会不会做聚合操作，只会进行排序然后写出到磁盘。下文先介绍没有聚合，然后介绍有聚合。两者之间有很多的共同之处，都会先将数据缓存在内存当中，在达到一定大小之后刷到磁盘，但是最大的区别也在此，他们使用了不同的集合缓存数据。</p>
+<h3 id="2-2-1-ExternalSorter"><a href="#2-2-1-ExternalSorter" class="headerlink" title="2.2.1 ExternalSorter"></a>2.2.1 ExternalSorter</h3><p>下面是ExternalSorter的一些重要的成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">1. private val blockManager = SparkEnv.get.blockManager</span><br><span class="line">   写出临时文件到磁盘需要blockManager</span><br><span class="line">2. private var map = new PartitionedAppendOnlyMap[K, C]</span><br><span class="line">   private var buffer = new PartitionedPairBuffer[K, C] </span><br><span class="line">   下文介绍在map端执行聚合操作和不在map聚合是数据会以不同的方式缓存在内存中，map就是在map端聚合是数据缓存的方式</span><br><span class="line">3. private val keyComparator: Comparator[K] </span><br><span class="line">    key的比较方式，在map端聚合时，数据排序方式是先按partitionId然后按key排序。不在map聚合时这个字段是空，只按partitionId排序</span><br><span class="line">4. private val spills = new ArrayBuffer[SpilledFile]</span><br><span class="line">    缓存在内存中的数据（map或者buffer）在达到一定大小后就会写出到磁盘中，spills保存了所有写出过的磁盘文件，后续会根据spills做merge成一个文件。</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-2-2-不在map端聚合"><a href="#2-2-2-不在map端聚合" class="headerlink" title="2.2.2 不在map端聚合"></a>2.2.2 不在map端聚合</h3><p>下面是ExternalSorter#insertAll的源码:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">def insertAll(records: Iterator[Product2[K, V]]): Unit = &#123;</span><br><span class="line">   // TODO: stop combining if we find that the reduction factor isn&apos;t high</span><br><span class="line">   val shouldCombine = aggregator.isDefined</span><br><span class="line"></span><br><span class="line">   if (shouldCombine) &#123;</span><br><span class="line">     ...</span><br><span class="line">     ...</span><br><span class="line">     // 此处省略了map做combine的代码</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     // Stick values into our buffer</span><br><span class="line">     while (records.hasNext) &#123;</span><br><span class="line">       addElementsRead()</span><br><span class="line">       val kv = records.next()</span><br><span class="line">       buffer.insert(getPartition(kv._1), kv._1, kv._2.asInstanceOf[C])</span><br><span class="line">       maybeSpillCollection(usingMap = false)</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>while循环获取（key，value）记录，然后调用<code>buffer.insert(...)</code>插入记录，此处buffer是<code>PartitionedPairBuffer</code>的实例（PartitionedPairBuffer介绍见附录4.1）。insert会将（key，value）转换成((partition_id,key), value)的形式插入，例如(“China”,”Beijing”) -&gt;((1, “China”), “Beijing”).</p>
+<p>maybeSpillCollection则会根据具体情况决定是否将buffer中的记录写出到磁盘。经过如下调用链路进入到写磁盘操作:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">maybeSpillCollection (调用buffer.estimateSize 估算当前buffer大小)</span><br><span class="line">          --&gt; mybeSpill  (会尝试扩容)</span><br><span class="line">                --&gt; spill   (写到磁盘中)</span><br></pre></td></tr></table></figure></p>
+<p>下面是spill方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">override protected[this] def spill(collection: WritablePartitionedPairCollection[K, C]): Unit = &#123;</span><br><span class="line">    val inMemoryIterator = collection.destructiveSortedWritablePartitionedIterator(comparator)</span><br><span class="line">    val spillFile = spillMemoryIteratorToDisk(inMemoryIterator)</span><br><span class="line">    spills += spillFile</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>collection.destructiveSortedWritablePartitionedIterator(comparator)</code>做了很多事情，参数comparator在这种情况下是null。<br>下面是它的调用序列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">destructiveSortedWritablePartitionedIterator </span><br><span class="line">   -&gt; partitionedDestructiveSortedIterator</span><br><span class="line">       -&gt; PartitionedPairBuffer#partitionedDestructiveSortedIterator</span><br></pre></td></tr></table></figure></p>
+<p>进入到<code>PartitionedPairBuffer#partitionedDestructiveSortedIterator</code>代码如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">override def partitionedDestructiveSortedIterator(keyComparator: Option[Comparator[K]])</span><br><span class="line">   : Iterator[((Int, K), V)] = &#123;</span><br><span class="line">   val comparator = keyComparator.map(partitionKeyComparator).getOrElse(partitionComparator)</span><br><span class="line">   new Sorter(new KVArraySortDataFormat[(Int, K), AnyRef]).sort(data, 0, curSize, comparator)</span><br><span class="line">   iterator</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>此处参数keyComparator从前面一直传下来的，此处是空值，因此comparator使用partitionComparator，也就是只按照buffer数据所属的partitionId排序。</p>
+<p>Sort#sort方法对buffer排序（排序直接在buffer底层数据上移动，也就是说会破坏buffer原有的数据顺序）之后返回iterator，此时这个iterator迭代出来的数据就是按照partitionId排序的数据，同时也就意味者相同的partitionId的数据一定会连续的分布。</p>
+<p>回到上面spill方法，spillMemoryIteratorToDisk接收上面提到的iterator作为参数开始输出磁盘, 这个方法大体如下：</p>
+<ol>
+<li>使用batchSizes保存每批量flush的大小，</li>
+<li>elementsPerPartition保存每个partition，键值对个数</li>
+<li>创建临时文件，buffer中记录批量写出，只写出key,value，partitionId不写</li>
+<li>返回SpilledFile，里面有blockId，file,elementsPerPartitionbatchSizes这些信息，后续会将SpilledFile合并成一个文件。</li>
+</ol>
+<p><strong>和Bypass方式的区别</strong></p>
+<p>两者在写map out数据时都会产生多个临时文件，bypass方式产生的每一个临时文件中的数据指挥是下游一个reducer的输入数据，后续合并成同一个文件时很简单只要逐个将临时文件copy就行，但是sort方式中临时文件中的数据可能输入多个reducer，也就意味着在合并到同一个文件时，需要考虑将多个临时文件相同的分区合并好在输出到最终文件中。关于sort的文件合并会在下一节<strong>“map端做聚合”</strong>之后。</p>
+<h3 id="2-2-3-在map端做聚合"><a href="#2-2-3-在map端做聚合" class="headerlink" title="2.2.3 在map端做聚合"></a>2.2.3 在map端做聚合</h3><p><strong>定义聚合方法</strong><br>reduce转换会是的两个RDD之间存在ShuffleDependency，ShuffleDependency，ShuffleDependency的属性<code>aggregator: Aggregator</code>定义了按key聚合的方式，Aggregator类如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">case class Aggregator[K, V, C] (</span><br><span class="line">    createCombiner: V =&gt; C,</span><br><span class="line">    mergeValue: (C, V) =&gt; C,</span><br><span class="line">    mergeCombiners: (C, C) =&gt; C) &#123;</span><br><span class="line">...&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>K,V分别时key、value的类型，C是V聚合后的类型。</li>
+<li>createCombiner, 第一个value转换成聚合后类型。</li>
+<li>mergeValue， 并入的value。</li>
+<li>合并两个已经聚合的数据。</li>
+</ul>
+<p>例如我们将相同key的value(String类型)合并到一个List中，则定义：<br>createCombiner:  (s String) =&gt; List(s) 将string转成List<br>mergeValue: (c:List[String],v: String) =&gt; v::c 将string加到列表<br>mergeCombiners:  (c1:List[String],c2: List[String]) =&gt; c1:::c2 合并两个列表</p>
+<p><strong>write过程</strong><br>下图是一个map端做聚合的shuffle write过程：</p>
+<p><img src="/image/spark/shuffle-map-side-merge.png" alt="sortshuffle_mapside_combine.png"></p>
+<p><code>reduceByKey(_ + &quot;,&quot; + _)</code>操作把key相同的所有value用“，”连接起来。</p>
+<p>依然是调用ExternalSorter#insertAll完成排序，aggregate以及写出到磁盘的过程。此时使用map作为内存缓存的数据结构。写的流程如下：</p>
+<ol>
+<li>从输入iterator中一次读入（key，value），使用partitioner计算key的partitionid，调用map.insert插入数据，格式为（(partitionid,key),value）,插入时就会对key相同的做aggregate，形成的内存数据布局如上图map（上图map数据已经排序了，但是插入时不会排序，而是在写出磁盘时排序）。</li>
+<li>当map的数据达到一定大小时，使用blockManager创建临时文件temp_shuffle_uuid，然后对map数据排序，输出到临时文件。排序时现按照partitionid排序，然后按照key排序，保证临时文件中相同partitionid的数据一定是连续分布的。</li>
+<li>完成ExternalSorter#insertAll调用，生成若干临时文件，合并这些文件。</li>
+</ol>
+<p><strong>源码解析</strong><br>源码基本和不做聚合时一样，区别主要是在用作内存缓存的集合buffer和map的区别。附录介绍了buffer和map的原理。</p>
+<h1 id="3-ShuffleRead"><a href="#3-ShuffleRead" class="headerlink" title="3. ShuffleRead"></a>3. ShuffleRead</h1><p>前面RDD转换图中，RDD#reduceByKey产生了MapPartitionRDD到ShufferedRDD的转换，shuffle read操作发生在转换ShufferedRDD的compute方法中，下面是ShufferedRDD#compute方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = &#123;</span><br><span class="line">   val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]</span><br><span class="line">   SparkEnv.get.shuffleManager.getReader(dep.shuffleHandle, split.index, split.index + 1, context)</span><br><span class="line">     .read()</span><br><span class="line">     .asInstanceOf[Iterator[(K, C)]]</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过shuffleManager.getReader获得ShuffleReader，返回的是BlockStoreShuffleReader的实例，参数[split.index,split.index+1）表示需要从上游stage0 所有task产生的数据文件中读取split.index这一个分区的记录。</p>
+<p>下面是BlockStoreShuffleReader#read方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">/** Read the combined key-values for this reduce task */</span><br><span class="line">  override def read(): Iterator[Product2[K, C]] = &#123;</span><br><span class="line">    val wrappedStreams = new ShuffleBlockFetcherIterator(</span><br><span class="line">      context,</span><br><span class="line">      blockManager.shuffleClient,</span><br><span class="line">      blockManager,</span><br><span class="line">      mapOutputTracker.getMapSizesByExecutorId(handle.shuffleId, startPartition, endPartition),</span><br><span class="line">      serializerManager.wrapStream,</span><br><span class="line">      // Note: we use getSizeAsMb when no suffix is provided for backwards compatibility</span><br><span class="line">      SparkEnv.get.conf.getSizeAsMb(&quot;spark.reducer.maxSizeInFlight&quot;, &quot;48m&quot;) * 1024 * 1024,</span><br><span class="line">      SparkEnv.get.conf.getInt(&quot;spark.reducer.maxReqsInFlight&quot;, Int.MaxValue),</span><br><span class="line">      SparkEnv.get.conf.getBoolean(&quot;spark.shuffle.detectCorrupt&quot;, true))</span><br><span class="line"></span><br><span class="line">    val serializerInstance = dep.serializer.newInstance()</span><br><span class="line"></span><br><span class="line">    // Create a key/value iterator for each stream</span><br><span class="line">    val recordIter = wrappedStreams.flatMap &#123; case (blockId, wrappedStream) =&gt;</span><br><span class="line">      // Note: the asKeyValueIterator below wraps a key/value iterator inside of a</span><br><span class="line">      // NextIterator. The NextIterator makes sure that close() is called on the</span><br><span class="line">      // underlying InputStream when all records have been read.</span><br><span class="line">      serializerInstance.deserializeStream(wrappedStream).asKeyValueIterator</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // Update the context task metrics for each record read.</span><br><span class="line">    val readMetrics = context.taskMetrics.createTempShuffleReadMetrics()</span><br><span class="line">    val metricIter = CompletionIterator[(Any, Any), Iterator[(Any, Any)]](</span><br><span class="line">      recordIter.map &#123; record =&gt;</span><br><span class="line">        readMetrics.incRecordsRead(1)</span><br><span class="line">        record</span><br><span class="line">      &#125;,</span><br><span class="line">      context.taskMetrics().mergeShuffleReadMetrics())</span><br><span class="line"></span><br><span class="line">    // An interruptible iterator must be used here in order to support task cancellation</span><br><span class="line">    val interruptibleIter = new InterruptibleIterator[(Any, Any)](context, metricIter)</span><br><span class="line"></span><br><span class="line">    val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) &#123;</span><br><span class="line">      if (dep.mapSideCombine) &#123;</span><br><span class="line">        // We are reading values that are already combined</span><br><span class="line">        val combinedKeyValuesIterator = interruptibleIter.asInstanceOf[Iterator[(K, C)]]</span><br><span class="line">        dep.aggregator.get.combineCombinersByKey(combinedKeyValuesIterator, context)</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        // We don&apos;t know the value type, but also don&apos;t care -- the dependency *should*</span><br><span class="line">        // have made sure its compatible w/ this aggregator, which will convert the value</span><br><span class="line">        // type to the combined type C</span><br><span class="line">        val keyValuesIterator = interruptibleIter.asInstanceOf[Iterator[(K, Nothing)]]</span><br><span class="line">        dep.aggregator.get.combineValuesByKey(keyValuesIterator, context)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">      require(!dep.mapSideCombine, &quot;Map-side combine without Aggregator specified!&quot;)</span><br><span class="line">      interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // Sort the output if there is a sort ordering defined.</span><br><span class="line">    dep.keyOrdering match &#123;</span><br><span class="line">      case Some(keyOrd: Ordering[K]) =&gt;</span><br><span class="line">        // Create an ExternalSorter to sort the data. Note that if spark.shuffle.spill is disabled,</span><br><span class="line">        // the ExternalSorter won&apos;t spill to disk.</span><br><span class="line">        val sorter =</span><br><span class="line">          new ExternalSorter[K, C, C](context, ordering = Some(keyOrd), serializer = dep.serializer)</span><br><span class="line">        sorter.insertAll(aggregatedIter)</span><br><span class="line">        context.taskMetrics().incMemoryBytesSpilled(sorter.memoryBytesSpilled)</span><br><span class="line">        context.taskMetrics().incDiskBytesSpilled(sorter.diskBytesSpilled)</span><br><span class="line">        context.taskMetrics().incPeakExecutionMemory(sorter.peakMemoryUsedBytes)</span><br><span class="line">        CompletionIterator[Product2[K, C], Iterator[Product2[K, C]]](sorter.iterator, sorter.stop())</span><br><span class="line">      case None =&gt;</span><br><span class="line">        aggregatedIter</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这是一个很复杂的方法，从上游的map output读区属于当前分区的block，层层封装迭代器，从上面代码可以看到有如下迭代器：</p>
+<ol>
+<li>ShuffleBlockFetcherIterator<br>其next方法返回类型为<code>(BlockId, InputStream)</code>。当前reduce分区需要从上游map 输出数据中fetch多个block。这个迭代器负责从上游fetch到blockid中的数据（由于write阶段数据是合并到一个blockid文件中，所以数据是其中一段），然后将从数据创建InputStream，并把blockid以及创建的stream返回。显然如果上游有三个partition，每个partition的输出数据文件中有一段是当前的输入，那这个迭代器三次就结束了。</li>
+<li>val recordIter = wrappedStreams.flatMap { …}<br>1 中迭代器产生（BlockId，InputStream），但是作为read 而言spark最终需要的读出一个个（key，value），在 1 的iterator上做一次flatMap将（BlockId，InputStream）转换成（key，value）。<br>先是调用<code>serializerInstance.deserializeStream(wrappedStream)</code>使用自定义的序列化方式包装一下1中的输入流，这样就能正常读出反序列化后的对象；然后调用<code>asKeyValueIterator</code>转换成NextIterator，其next方法就反序列化后的流中读出（key，value）。</li>
+<li>val metricIter = CompletionIterator…<br>这个迭代器包装2中迭代器，next方法也只是包装了2中的迭代器，但是多了一个度量的功能，统计读入多少（key，value）。</li>
+<li>InterruptibleIterator， 这个迭代器使得任务取消是优雅的停止读入数据。</li>
+<li><p>val aggregatedIter: Iterator[Product2[K, C]] = if  …<br>从前面shuffle write的过程可以知道，即便每一个分区任务写出时做了value的聚合，在reducer端的任务里，由于有多个分区的数据，因此依然还要需要对每个分区里的相同的key做value的聚合。<br>这个iterator就是完成这个功能。<br>首先，会从4 中迭代器中一个个读入数据，缓存在内存中（map缓存，因为要做聚合），并且在必要时spill到磁盘（spill之前会按key排序）。这个过程和shuffle write中在map端聚合时操作差不多。<br>然后， 假设上一部产生了多个spill文件，那么每一个spill文件必然时按key排序的，再对这个spill文件做归并，归并时key相同的进行聚合。<br>最后， 迭代器的next返回key以及聚合后的value。</p>
+</li>
+<li><p>dep.keyOrdering match {…<br>5中相同key的所有value都按照用户自定义的聚合方法聚合在一起了，但是iterator输出是按key的hash值排序输出的，用户可能自定义了自己的排序方法。这里又使用了ExternalSorter，按照自定义排序方式排序（根据前面External介绍，可能又会有spill磁盘的操作。。。），返回的iterator按照用户自定义排序返回聚合后的key。</p>
+</li>
+</ol>
+<p>至此shuffle read算是完成。</p>
+<h3 id="3-1-Shuffle-Read源码解析"><a href="#3-1-Shuffle-Read源码解析" class="headerlink" title="3.1 Shuffle Read源码解析"></a>3.1 Shuffle Read源码解析</h3><p>层层包装的iterator中，比较复杂的在两个地方：</p>
+<ol>
+<li>上面1中 ShuffleBlockFetcherIterator，从上游依赖的rdd读区分区数据。</li>
+<li>上面5中aggregatedIter，对读取到的各个分区数据做reducer端的aggregate</li>
+</ol>
+<p>这里只介绍上面2处。</p>
+<h4 id="3-1-1-ShuffleBlockFetchIterator"><a href="#3-1-1-ShuffleBlockFetchIterator" class="headerlink" title="3.1.1  ShuffleBlockFetchIterator"></a>3.1.1  ShuffleBlockFetchIterator</h4><p>下面是BlockStoreShuffleReader#read创建该iterator时的代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">val wrappedStreams = new ShuffleBlockFetcherIterator(</span><br><span class="line">      context,</span><br><span class="line">      blockManager.shuffleClient,</span><br><span class="line">      blockManager,</span><br><span class="line">      mapOutputTracker.getMapSizesByExecutorId(handle.shuffleId, startPartition, endPartition),</span><br><span class="line">      serializerManager.wrapStream,</span><br><span class="line">      // Note: we use getSizeAsMb when no suffix is provided for backwards compatibility</span><br><span class="line">      SparkEnv.get.conf.getSizeAsMb(&quot;spark.reducer.maxSizeInFlight&quot;, &quot;48m&quot;) * 1024 * 1024,</span><br><span class="line">      SparkEnv.get.conf.getInt(&quot;spark.reducer.maxReqsInFlight&quot;, Int.MaxValue),</span><br><span class="line">      SparkEnv.get.conf.getBoolean(&quot;spark.shuffle.detectCorrupt&quot;, true))</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>blockManager.shuffleClient, 上NettyBlockTranseferService的实例，这在《Spark初始化》文章中介绍过，用来传输datablock。NettyBlockTransferService可以参考《Spark 数据传输》</li>
+<li>mapOutputTracker.getXXX返回executorId到BlockId的映射，表示当前partition需要读取的上游的的block的blockid，以及blockid所属的executor。</li>
+<li>serializerManager.wrapStream, 反序列化流，上有数据被包装成输入流之后，再使用反序列化流包装之后读出对象。</li>
+</ol>
+<p>创建ShuffleBlockFetchIterator时会调用它的initialize方法，该方法如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">private[this] def initialize(): Unit = &#123;</span><br><span class="line">    // Add a task completion callback (called in both success case and failure case) to cleanup.</span><br><span class="line">    context.addTaskCompletionListener(_ =&gt; cleanup())</span><br><span class="line"></span><br><span class="line">    // Split local and remote blocks.</span><br><span class="line">    val remoteRequests = splitLocalRemoteBlocks()</span><br><span class="line">    // Add the remote requests into our queue in a random order</span><br><span class="line">    fetchRequests ++= Utils.randomize(remoteRequests)</span><br><span class="line">    assert ((0 == reqsInFlight) == (0 == bytesInFlight),</span><br><span class="line">      &quot;expected reqsInFlight = 0 but found reqsInFlight = &quot; + reqsInFlight +</span><br><span class="line">      &quot;, expected bytesInFlight = 0 but found bytesInFlight = &quot; + bytesInFlight)</span><br><span class="line"></span><br><span class="line">    // Send out initial requests for blocks, up to our maxBytesInFlight</span><br><span class="line">    fetchUpToMaxBytes()</span><br><span class="line"></span><br><span class="line">    val numFetches = remoteRequests.size - fetchRequests.size</span><br><span class="line">    logInfo(&quot;Started &quot; + numFetches + &quot; remote fetches in&quot; + Utils.getUsedTimeMs(startTime))</span><br><span class="line"></span><br><span class="line">    // Get Local Blocks</span><br><span class="line">    fetchLocalBlocks()</span><br><span class="line">    logDebug(&quot;Got local blocks in &quot; + Utils.getUsedTimeMs(startTime))</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>splitLocalRemoteBlocks, 根据executorId区分出在本地的的block和远程的block，然后构建出FetchRequest（每一个request可能包含多个block，但是block都是属于一个executor）。</li>
+<li>fetchUpToMaxBytes和fetchLocalBlocks，从本地或者远程datablock，数据放在buffer中，包装好buffer放到其成员results（一个阻塞队列）中。</li>
+</ol>
+<p>作为iterator，它的next方法每次从results中取出一个，从数据buffer中创建出InputStream，使用wrapStream包装InputStream返回。</p>
+<h4 id="3-1-2-aggregatedIter"><a href="#3-1-2-aggregatedIter" class="headerlink" title="3.1.2 aggregatedIter"></a>3.1.2 aggregatedIter</h4><p>用来将上游各个partition中的数据在reducer再聚合的，<br>调用<code>dep.aggregator.get.combineCombinersByKey(combinedKeyValuesIterator, context)</code>创建aggregatedIter，下面是combineCombinersByKey方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">def combineCombinersByKey(</span><br><span class="line">     iter: Iterator[_ &lt;: Product2[K, C]],</span><br><span class="line">     context: TaskContext): Iterator[(K, C)] = &#123;</span><br><span class="line">   val combiners = new ExternalAppendOnlyMap[K, C, C](identity, mergeCombiners, mergeCombiners)</span><br><span class="line">   combiners.insertAll(iter)</span><br><span class="line">   updateMetrics(context, combiners)</span><br><span class="line">   combiners.iterator</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>调用ExternalAppendOnlyMap#insertAll将输入数据，这个类和PartitionedAppendOnlyMap原理十分类似，实际上它内部使用<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@volatile private var currentMap = new SizeTrackingAppendOnlyMap[K, C]</span><br></pre></td></tr></table></figure></p>
+<p>这个成员来缓存数据，插入数据同时会合并key相同的value，在内存不够时，会保存到磁盘上，返回的iterator则会迭代磁盘中的文件合并的结果，可以参考附录4.2节。</p>
+<p>关于ExternalAppendOnlyMap#iterator的介绍见附录4.3 ExternalAppendOnlyMap</p>
+<h2 id="4-附录"><a href="#4-附录" class="headerlink" title="4. 附录"></a>4. 附录</h2><h3 id="4-1-PartitionedPairBuffer"><a href="#4-1-PartitionedPairBuffer" class="headerlink" title="4.1 PartitionedPairBuffer"></a>4.1 PartitionedPairBuffer</h3><p><strong>数据存放格式</strong><br>2.2.2节中说到当不在Map 端做聚合时，ExternalSorter使用buffer作为内存缓存数据时的数据结构，调用<code>buffer.insert(getPartition(kv._1), kv._1, kv._2.asInstanceOf[C])</code>插入数据记录。插入数据时将（key，value）转换成（(partition-id,key), value）的形式插入。</p>
+<p>下面PartitionedPairBuffer的核心属性：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">private var capacity = initialCapacity</span><br><span class="line">private var curSize = 0</span><br><span class="line">private var data = new Array[AnyRef](2 * initialCapacity)</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>data是一个数据，就是PartitionedPairBuffer底层用来存储数据，其初始长度是0。</li>
+</ol>
+<p>下面是PartitionedPairBuffer的insert方法<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">def insert(partition: Int, key: K, value: V): Unit = &#123;</span><br><span class="line">    if (curSize == capacity) &#123;</span><br><span class="line">      growArray()</span><br><span class="line">    &#125;</span><br><span class="line">    data(2 * curSize) = (partition, key.asInstanceOf[AnyRef])</span><br><span class="line">    data(2 * curSize + 1) = value.asInstanceOf[AnyRef]</span><br><span class="line">    curSize += 1</span><br><span class="line">    afterUpdate()</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>依次插入key，和value。因此PartitionedPairBuffer中数据排列的方式<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">_______________________________________________________</span><br><span class="line">| key1 | value1 | key2 | value2 | ... | keyN | valueN |</span><br><span class="line">_______________________________________________________</span><br></pre></td></tr></table></figure></p>
+<p>数据是连续分布的。</p>
+<p><strong>数据排序</strong><br>ExternalSorter使用buffer的size达到一定大小后会将buffer中数据spill到磁盘，在此之前需要对乱序的data数据排序。<br><code>PartitionedPairBuffer#partitionedDestructiveSortedIterator(keyComparator: Option[Comparator[K]])</code><br>方法对data数据中的数据进行排序，按照key排序，参数keyComparator定义key的比较方式。</p>
+<p>在ExternalSorter中，data数组中key是（partition-id,key）。keyComparator取partition-id比较大小排序。这样就保证相同的partition-id连续分布在写到磁盘中的文件中。</p>
+<p>排序所用的算法为timsort（优化后的归并排序），参考<a href="https://en.wikipedia.org/wiki/Timsort" target="_blank" rel="noopener">timsort wiki</a></p>
+<h3 id="4-2-PartitionedAppendOnlyMap"><a href="#4-2-PartitionedAppendOnlyMap" class="headerlink" title="4.2  PartitionedAppendOnlyMap"></a>4.2  PartitionedAppendOnlyMap</h3><p>2.2.3 节中介绍当shuffle write对写出的数据做map端聚合时，用来做内存缓存数据的数据结构式map。<br><strong>数据存放格式</strong></p>
+<p>PartitionedAppendOnlyMap类有如下继承关系：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">AppendOnlyMap</span><br><span class="line">           ^</span><br><span class="line">           |</span><br><span class="line">SizeTrackingAppendOnlyMap  WritablePartitionedPairCollection</span><br><span class="line">                     ^                             ^</span><br><span class="line">                     |                             |</span><br><span class="line">                     _______________________________</span><br><span class="line">                                        ^</span><br><span class="line">                                        |</span><br><span class="line">                             PartitionedAppendOnlyMap</span><br></pre></td></tr></table></figure></p>
+<p>2.2.3节中ExternalSorter向map中插入数据的代码如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">insertAll(...)&#123;</span><br><span class="line">...</span><br><span class="line">if (shouldCombine) &#123;</span><br><span class="line">      // Combine values in-memory first using our AppendOnlyMap</span><br><span class="line">      val mergeValue = aggregator.get.mergeValue</span><br><span class="line">      val createCombiner = aggregator.get.createCombiner</span><br><span class="line">      var kv: Product2[K, V] = null</span><br><span class="line">      val update = (hadValue: Boolean, oldValue: C) =&gt; &#123;</span><br><span class="line">        if (hadValue) mergeValue(oldValue, kv._2) else createCombiner(kv._2)</span><br><span class="line">      &#125;</span><br><span class="line">      while (records.hasNext) &#123;</span><br><span class="line">        addElementsRead()</span><br><span class="line">        kv = records.next()</span><br><span class="line">        map.changeValue((getPartition(kv._1), kv._1), update)</span><br><span class="line">        maybeSpillCollection(usingMap = true)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br><span class="line">mergeValue，createCombiner即定义在Aggregator中合并value的函数。</span><br><span class="line">调用的map.changeValue插入数据，这个方法还传入的参数update函数，</span><br><span class="line">map调用changeValue插入数据时，会首先调用update,update做如下判断：</span><br><span class="line">1. 若key之前已经在map中（hadValue=true），调用mergeValue合并key相同的value</span><br><span class="line">2. key不存在（hadValue=false），转换value。</span><br><span class="line"></span><br><span class="line">所以综上所述，在map端按key聚合就是在插入数据的过程的完成的。</span><br></pre></td></tr></table></figure></p>
+<p>调用PartitionedAppednOnlyMap#insert()，会有下面调用链：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">PartitionedAppendOnlyMap#changeValue(key,value)</span><br><span class="line">   -&gt; SizeTrackingAppendOnlyMap#changeValue( (partition-id,key), value) 和buffer插入一样，将key转换（partition-id,key）</span><br><span class="line">       -&gt;AppendOnlyMap#changeValue( (partition-id,key),value )</span><br></pre></td></tr></table></figure></p>
+<p>底层数据结构在AppendOnlyMap中，AppendOnlyMap有如下属性：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">private var data = new Array[AnyRef](2 * capacity)</span><br></pre></td></tr></table></figure></p>
+<p>底层存储数据依然使用data数组。</p>
+<p>下面是AppendOnlyMap#changeValue方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">def changeValue(key: K, updateFunc: (Boolean, V) =&gt; V): V = &#123;</span><br><span class="line">    assert(!destroyed, destructionMessage)</span><br><span class="line">    val k = key.asInstanceOf[AnyRef]</span><br><span class="line">    if (k.eq(null)) &#123;</span><br><span class="line">      if (!haveNullValue) &#123;</span><br><span class="line">        incrementSize()</span><br><span class="line">      &#125;</span><br><span class="line">      nullValue = updateFunc(haveNullValue, nullValue)</span><br><span class="line">      haveNullValue = true</span><br><span class="line">      return nullValue</span><br><span class="line">    &#125;</span><br><span class="line">    var pos = rehash(k.hashCode) &amp; mask</span><br><span class="line">    var i = 1</span><br><span class="line">    while (true) &#123;</span><br><span class="line">      val curKey = data(2 * pos)</span><br><span class="line">      if (curKey.eq(null)) &#123;</span><br><span class="line">       // curKey是null，表示没有插入过相同的key，不需要合并</span><br><span class="line">       // updateFunc就是上面提到的update，合并value的</span><br><span class="line">        val newValue = updateFunc(false, null.asInstanceOf[V])</span><br><span class="line">        data(2 * pos) = k</span><br><span class="line">        data(2 * pos + 1) = newValue.asInstanceOf[AnyRef]</span><br><span class="line">        incrementSize()</span><br><span class="line">        return newValue</span><br><span class="line">      &#125; else if (k.eq(curKey) || k.equals(curKey)) &#123;</span><br><span class="line">       // curKey不是null，表示有插入过相同的key，需要合并</span><br><span class="line">       // updateFunc就是上面提到的update，合并value的</span><br><span class="line">        val newValue = updateFunc(true, data(2 * pos + 1).asInstanceOf[V])</span><br><span class="line">        data(2 * pos + 1) = newValue.asInstanceOf[AnyRef]</span><br><span class="line">        return newValue</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        val delta = i</span><br><span class="line">        pos = (pos + delta) &amp; mask</span><br><span class="line">        i += 1</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    null.asInstanceOf[V] // Never reached but needed to keep compiler happy</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面代码中对于待插入的（key,value）,不像buffer中那样直接放在数据尾部，而是调用<code>pos = rehash(...)</code>确定插入的位置，因此其底层的数据可能是下面这样的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">______________________________________________________________________</span><br><span class="line">| key1 | value1 |   |   | key2 | value2 | ... | keyN | valueN |    |</span><br><span class="line">______________________________________________________________________</span><br></pre></td></tr></table></figure></p>
+<p>使用hash的方式确定位置，意味着数据不是连续的，存在空槽。</p>
+<p><strong>数据排序</strong><br>和buffer排序有点区别，buffer由于数据是连续分布，没有空槽，timsort可以直接在数组上排序。但是map由于空槽的存在，需要先将数据聚拢在一起，然后使用和buffer一样的排序。</p>
+<h3 id="4-3-ExternalAppendOnlyMap"><a href="#4-3-ExternalAppendOnlyMap" class="headerlink" title="4.3 ExternalAppendOnlyMap"></a>4.3 ExternalAppendOnlyMap</h3><p>它有如下核心成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">@volatile private var currentMap = new SizeTrackingAppendOnlyMap[K, C]</span><br><span class="line"> private val spilledMaps = new ArrayBuffer[DiskMapIterator]</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>currentMap是其内部用来缓存数据</li>
+<li>spilledMaps，currentMap的size达到一定大小之后，会将数据写到磁盘，这个里面保存了用来迭代返回磁盘文件中（key，value）。</li>
+</ol>
+<p>这里主要介绍ExternalAppendOnlyMap#iterator。下面是iterator方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">override def iterator: Iterator[(K, C)] = &#123;</span><br><span class="line">   if (currentMap == null) &#123;</span><br><span class="line">     throw new IllegalStateException(</span><br><span class="line">       &quot;ExternalAppendOnlyMap.iterator is destructive and should only be called once.&quot;)</span><br><span class="line">   &#125;</span><br><span class="line">   if (spilledMaps.isEmpty) &#123;</span><br><span class="line">     CompletionIterator[(K, C), Iterator[(K, C)]](</span><br><span class="line">       destructiveIterator(currentMap.iterator), freeCurrentMap())</span><br><span class="line">   &#125; else &#123;</span><br><span class="line">     new ExternalIterator()</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>spilledMap.isEmpty表示内存够用，没有spill到磁盘，这个时候比较好办不需要再将磁盘文件合并的，直接在底层存储结构currentMap上迭代就行了。</li>
+<li>否则，需要合并磁盘文件，创建ExternalIterator用来合并文件。</li>
+</ol>
+<p><strong>ExternalIterator</strong><br>对spill到磁盘文件做外部归并的。<br>它有如下成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">private val mergeHeap = new mutable.PriorityQueue[StreamBuffer]</span><br><span class="line"></span><br><span class="line">   // Input streams are derived both from the in-memory map and spilled maps on disk</span><br><span class="line">   // The in-memory map is sorted in place, while the spilled maps are already in sorted order</span><br><span class="line">   private val sortedMap = CompletionIterator[(K, C), Iterator[(K, C)]](destructiveIterator(</span><br><span class="line">     currentMap.destructiveSortedIterator(keyComparator)), freeCurrentMap())</span><br><span class="line">   private val inputStreams = (Seq(sortedMap) ++ spilledMaps).map(it =&gt; it.buffered)</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>inputStreams,  sortedMap是当前内存currentMap的迭代器，spilledMaps是磁盘文件的迭代器，将这些迭代器转换成BufferedIterator（可以预读下一个数据，而移动迭代器）。</li>
+<li>mergeHeap，小根堆。</li>
+</ol>
+<p>ExternalIterator实例化话调用如下方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">inputStreams.foreach &#123; it =&gt;</span><br><span class="line">     val kcPairs = new ArrayBuffer[(K, C)]</span><br><span class="line">     readNextHashCode(it, kcPairs)</span><br><span class="line">     if (kcPairs.length &gt; 0) &#123;</span><br><span class="line">       mergeHeap.enqueue(new StreamBuffer(it, kcPairs))</span><br><span class="line">     &#125;</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>readNextHashCode，连续读区it迭代器中相同的key的所有记录，碰到不同key时停止</li>
+<li>mergeHeap.enqueue，将1中的所有（key，value）包装方入小根堆中。StreamBuffer重写了comparaTo方法，按照key的hash值排序。key小的就在堆顶端。</li>
+<li>foreach，对每一个待归并的文件，每次取出其靠前的key相同的连续记录，放到小根堆</li>
+</ol>
+<p>接下来是其next方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">override def next(): (K, C) = &#123;</span><br><span class="line">      if (mergeHeap.isEmpty) &#123;</span><br><span class="line">        throw new NoSuchElementException</span><br><span class="line">      &#125;</span><br><span class="line">      // Select a key from the StreamBuffer that holds the lowest key hash</span><br><span class="line">      //从堆中取出key hash最小的(key, value)序列</span><br><span class="line">      val minBuffer = mergeHeap.dequeue()</span><br><span class="line">      val minPairs = minBuffer.pairs</span><br><span class="line">      val minHash = minBuffer.minKeyHash</span><br><span class="line">      // 从(key,value)序列中取下第一个（key，value）记录</span><br><span class="line">      val minPair = removeFromBuffer(minPairs, 0)</span><br><span class="line">      val minKey = minPair._1</span><br><span class="line">      var minCombiner = minPair._2</span><br><span class="line">      assert(hashKey(minPair) == minHash)</span><br><span class="line"></span><br><span class="line">      </span><br><span class="line">      val mergedBuffers = ArrayBuffer[StreamBuffer](minBuffer)</span><br><span class="line">      // 判断堆中当前key hash最小的和刚刚取出来的第一个记录hash是</span><br><span class="line">      //不是一样，是一样则有可能是同一个key，但也可能不是同一个</span><br><span class="line">      // key，因为在inputStreams.foreach中是使用hashcode判断key</span><br><span class="line">   // 相等的，和reducer端则是使用==判断。</span><br><span class="line">      while (mergeHeap.nonEmpty &amp;&amp; mergeHeap.head.minKeyHash == minHash) &#123;</span><br><span class="line">       </span><br><span class="line">        val newBuffer = mergeHeap.dequeue()</span><br><span class="line">        // 可能需要合并，newBuffer中存放的是key的hashCode相等</span><br><span class="line">       // 的序列，但是key1==minKey不一定成立，所以可能只会合并</span><br><span class="line">       // minBuffer和newBuffer中的一部分数据</span><br><span class="line">        minCombiner = mergeIfKeyExists(minKey, minCombiner, newBuffer)</span><br><span class="line">        mergedBuffers += newBuffer</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      </span><br><span class="line">    // 前面说到buffer中数据可能只会有一部分合并，对于没有合并的</span><br><span class="line">   // 还需要重新添加到堆中，等待下一轮合并</span><br><span class="line">      mergedBuffers.foreach &#123; buffer =&gt;</span><br><span class="line">        if (buffer.isEmpty) &#123;</span><br><span class="line">         // minBuffer和newBuffer全部合并了，那可以从迭代器中读区下.    </span><br><span class="line">// 一批key的hashcode一样的连续记录了</span><br><span class="line">          readNextHashCode(buffer.iterator, buffer.pairs)</span><br><span class="line">        &#125;</span><br><span class="line">        if (!buffer.isEmpty) &#123;</span><br><span class="line">          mergeHeap.enqueue(buffer)</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      (minKey, minCombiner)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/06/Spark-Streaming-1-基本原理/" rel="prev" title="Spark Streaming(1) - 基本原理">
+                Spark Streaming(1) - 基本原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1. 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-Shuffle-Write"><span class="nav-number">2.</span> <span class="nav-text">2. Shuffle Write</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-BypassMergeSortShuffleWriter"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 BypassMergeSortShuffleWriter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-SortShuffleWriter"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 SortShuffleWriter</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-1-ExternalSorter"><span class="nav-number">2.2.1.</span> <span class="nav-text">2.2.1 ExternalSorter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-2-不在map端聚合"><span class="nav-number">2.2.2.</span> <span class="nav-text">2.2.2 不在map端聚合</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-3-在map端做聚合"><span class="nav-number">2.2.3.</span> <span class="nav-text">2.2.3 在map端做聚合</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-ShuffleRead"><span class="nav-number">3.</span> <span class="nav-text">3. ShuffleRead</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-Shuffle-Read源码解析"><span class="nav-number">3.0.1.</span> <span class="nav-text">3.1 Shuffle Read源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-ShuffleBlockFetchIterator"><span class="nav-number">3.0.1.1.</span> <span class="nav-text">3.1.1  ShuffleBlockFetchIterator</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-aggregatedIter"><span class="nav-number">3.0.1.2.</span> <span class="nav-text">3.1.2 aggregatedIter</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-附录"><span class="nav-number">3.1.</span> <span class="nav-text">4. 附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-PartitionedPairBuffer"><span class="nav-number">3.1.1.</span> <span class="nav-text">4.1 PartitionedPairBuffer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-PartitionedAppendOnlyMap"><span class="nav-number">3.1.2.</span> <span class="nav-text">4.2  PartitionedAppendOnlyMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-ExternalAppendOnlyMap"><span class="nav-number">3.1.3.</span> <span class="nav-text">4.3 ExternalAppendOnlyMap</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

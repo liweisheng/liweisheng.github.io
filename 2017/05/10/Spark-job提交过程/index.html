@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文基于spark2.11 1. 前言1.1 基本概念 RDD关于RDD已经有很多文章了，可以参考一下理解Spark的核心RDD 依赖依赖分为窄依赖和宽依赖，下图描述了两种依赖(图片出自spark窄依赖和宽依赖)从途中可以看出，窄依赖中，每一个上游RDD中的分区只会被一个下游分区依赖。而宽依赖上游RDD中的分区则可能被多个下游分区依赖。宽依赖往往意味者shuffle操作 shuffle窄依赖中，由">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark job提交过程源码解析">
+<meta property="og:url" content="http://yoursite.com/2017/05/10/Spark-job提交过程/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文基于spark2.11 1. 前言1.1 基本概念 RDD关于RDD已经有很多文章了，可以参考一下理解Spark的核心RDD 依赖依赖分为窄依赖和宽依赖，下图描述了两种依赖(图片出自spark窄依赖和宽依赖)从途中可以看出，窄依赖中，每一个上游RDD中的分区只会被一个下游分区依赖。而宽依赖上游RDD中的分区则可能被多个下游分区依赖。宽依赖往往意味者shuffle操作 shuffle窄依赖中，由">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/image/spark/spark-dep.jpeg">
+<meta property="og:updated_time" content="2018-01-24T11:40:35.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark job提交过程源码解析">
+<meta name="twitter:description" content="本文基于spark2.11 1. 前言1.1 基本概念 RDD关于RDD已经有很多文章了，可以参考一下理解Spark的核心RDD 依赖依赖分为窄依赖和宽依赖，下图描述了两种依赖(图片出自spark窄依赖和宽依赖)从途中可以看出，窄依赖中，每一个上游RDD中的分区只会被一个下游分区依赖。而宽依赖上游RDD中的分区则可能被多个下游分区依赖。宽依赖往往意味者shuffle操作 shuffle窄依赖中，由">
+<meta name="twitter:image" content="http://yoursite.com/image/spark/spark-dep.jpeg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/10/Spark-job提交过程/"/>
+
+
+
+
+
+  <title>Spark job提交过程源码解析 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/10/Spark-job提交过程/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark job提交过程源码解析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-10T19:38:34+08:00">
+                2017-05-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><em>本文基于spark2.11</em></p>
+<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><h2 id="1-1-基本概念"><a href="#1-1-基本概念" class="headerlink" title="1.1 基本概念"></a>1.1 基本概念</h2><ol>
+<li>RDD<br>关于RDD已经有很多文章了，可以参考一下<a href="http://www.infoq.com/cn/articles/spark-core-rdd/" target="_blank" rel="noopener">理解Spark的核心RDD</a></li>
+<li>依赖<br>依赖分为窄依赖和宽依赖，下图描述了两种依赖(图片出自<a href="http://blog.csdn.net/houmou/article/details/52531205" target="_blank" rel="noopener">spark窄依赖和宽依赖</a>)<br><img src="/image/spark/spark-dep.jpeg" alt="spark-dep.jpeg"><br>从途中可以看出，窄依赖中，每一个上游RDD中的分区只会被一个下游分区依赖。而宽依赖上游RDD中的分区则可能被多个下游分区依赖。宽依赖往往意味者shuffle操作</li>
+<li>shuffle<br>窄依赖中，由于只存在n - 1(n&gt;=1)的依赖关系，分区上的数据可以像流水线一样一道道应用计算，大多时候不需要移动数据。宽依赖，又叫shuffle dependency，由于分区包含下游多个分区的数据，需要将数据移动到对应分区，这个过程称为shuffle</li>
+<li><p>Stage<br>RDD DAG静态的描述了数据转换与依赖关系，action触发job提交时RDD DAG会被首先被划分以stage，stage划分的边界是宽依赖，也就是被划分到一个stage之内的rdd只存在窄依赖，stage之间是宽依赖。<br>有两种stage：ShuffleMapStage，ResultStage。一个job中只有一个ResultStage，是job运行的最后阶段，收集结果。</p>
+</li>
+<li><p>Task<br>task定义了计算任务，一个分区一个task，task根据划分好的stage生成。<br>有两种类型的task：ShuffleMapTask和ResultTask，和stage对应。</p>
+</li>
+</ol>
+<p>spark基于RDD上有两种操作transformation和action（见<a href="http://spark.apache.org/docs/latest/programming-guide.html#transformations" target="_blank" rel="noopener">spark programming-guide</a>），transformation(map、reduceByKey这种)使得RDD转换成新的RDD，action（foreach，top这种）则产生会触发一个新的job并提交，并产生以及收集job运行的结果。</p>
+<p>下面的代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">def main(args:Array[String])&#123;</span><br><span class="line">    val sparkConf = new SparkConf().setAppName(&quot;Log Query&quot;)</span><br><span class="line">    val sc = new SparkContext(sparkConf)</span><br><span class="line">    val lines = sc.textFile(&quot;README.md&quot;,3)</span><br><span class="line">    val words = lines.flatMap(line =&gt; line.split(&quot; &quot;))</span><br><span class="line">    val wordOne = words.map(word =&gt; (word,1))</span><br><span class="line">    val wordCount = wordOne.reduceByKey(_ + _,3)</span><br><span class="line">    wordCount.foreach(println)</span><br><span class="line">    val resultAsArry = wordCount.collect()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>有两个action：foreach和collect，因此会提交两个job，但是这两个job有共享了几个RDD。一个job提交会做一下几件事：</p>
+<ol>
+<li>DAGScheduler划分Stage<br>有两种Stage：ShuffleMapStage和ResultStage，前者划分以ShuffleDependency为边界，创建时会根据RDD往前回溯到源头，然后从源头往下创建stage。后者job最后一阶段，在所有上游ShuffleMapStage包含的任务（ShuffleMapTask）完成后收集结果</li>
+<li>DAGScheduler提交Stage<br>虽说最先提交ResultStage，但是提交时会追溯上游是否有未完成的Stage，直到找到所有不依赖任何Stage或者其依赖的Stage全部完成的Stage，然后提交。意味着对各stage可能并行提交。</li>
+<li>DAGScheduler根据Stage创建任务<br>这一步其实是包含在提交Stage当中的。Stage是一种静态的概念，最终运行在集群中的是task，对应ShuffleMapStage和ResultStage存在两种task：ShuffleMapTask和ResultTask。一个ShuffleMapStage包含若干窄依赖RDD组成，一个RDD又由若干partition组成，task运行在每一个partition之上，也就是说会根据ShuffleMapStage创建出多个task。 </li>
+<li>提交任务<br>根据ShuffleMapStage创建多个ShuffleMapTask之后，调用TaskScheduler开始调度任务。</li>
+<li>TaskScheduler调度任务<br>TaskScheduler根据任务的preferedLocation寻找合适的executor，然后将任务信息包装好发送LaunchTask到executor，让executor执行任务。</li>
+<li>Executor执行任务<br>executor运行在worker之上，接受到taskScheduler的LaunchTask消息后，启动任务的执行。</li>
+<li>任务状态汇报<br>任务运行信息会汇报到TaskScheduler，TaskScheduler则会汇报给DAGScheduler，DAGScheduler根据任务状态作出处理（stage中所有任务完成如提交子stage，读取上游数据失败重新提交stage等）</li>
+</ol>
+<h1 id="2-划分Stage"><a href="#2-划分Stage" class="headerlink" title="2. 划分Stage"></a>2. 划分Stage</h1><p>RDD上的action操作触发job的提交，提交之前会完成stage的划分，一个stage可能包含一连串的RDD之间的转换，stage的边界就是两个RDD之间的shuffle依赖,以上面代码为例,<code>wordOne.reduceByKey</code>使得wordCount和wordOne之间产生shuffle依赖，下图便是上述代码产生的RDD DAG stage的划分之后的样子</p>
+<p><code>wordCount.foreach(println)</code>这类action操作触发job的提交，经过一系列调用进入到DAGScheduler的如下方法中：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">def submitJob[T, U](</span><br><span class="line">      rdd: RDD[T],</span><br><span class="line">      func: (TaskContext, Iterator[T]) =&gt; U,</span><br><span class="line">      partitions: Seq[Int],</span><br><span class="line">      callSite: CallSite,</span><br><span class="line">      resultHandler: (Int, U) =&gt; Unit,</span><br><span class="line">      properties: Properties): JobWaiter[U] = &#123;</span><br><span class="line">    // Check to make sure we are not launching a task on a partition that does not exist.</span><br><span class="line">    val maxPartitions = rdd.partitions.length</span><br><span class="line">    partitions.find(p =&gt; p &gt;= maxPartitions || p &lt; 0).foreach &#123; p =&gt;</span><br><span class="line">      throw new IllegalArgumentException(</span><br><span class="line">        &quot;Attempting to access a non-existent partition: &quot; + p + &quot;. &quot; +</span><br><span class="line">          &quot;Total number of partitions: &quot; + maxPartitions)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 每个action触发一个job，每个job一个唯一的id</span><br><span class="line">    val jobId = nextJobId.getAndIncrement()</span><br><span class="line">    if (partitions.size == 0) &#123;</span><br><span class="line">      // Return immediately if the job is running 0 tasks</span><br><span class="line">      return new JobWaiter[U](this, jobId, 0, resultHandler)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    assert(partitions.size &gt; 0)</span><br><span class="line">    val func2 = func.asInstanceOf[(TaskContext, Iterator[_]) =&gt; _]</span><br><span class="line">    val waiter = new JobWaiter(this, jobId, partitions.size, resultHandler)</span><br><span class="line">    // 向事件循环中发送一个JobSubmitted的消息</span><br><span class="line">    // 消息包含了rdd，jobid，partitions等信息</span><br><span class="line">    eventProcessLoop.post(JobSubmitted(</span><br><span class="line">      jobId, rdd, func2, partitions.toArray, callSite, waiter,</span><br><span class="line">      SerializationUtils.clone(properties)))</span><br><span class="line">    waiter</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>参数解释</strong></p>
+<ol>
+<li>上面方法中参数rdd即代码中<code>val wordCount</code>对应的rdd</li>
+<li>参数func，由println包装成的，下文会提到，这个func只会作用于ResultStage。</li>
+<li>partiitions，rdd包含的分区</li>
+<li>resulthandler，返回结果时回调</li>
+</ol>
+<p>上面代码中并未提交job，而是发送JobSubmited消息给eventProcessLoop，由其异步的提交job。下面是eventProcessLoop的类DAGSchedulerEventProcessLoop处理接收到的消息的代码逻辑：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">private def doOnReceive(event: DAGSchedulerEvent): Unit = event match &#123;</span><br><span class="line">    case JobSubmitted(jobId, rdd, func, partitions, callSite, listener, properties) =&gt;</span><br><span class="line">      dagScheduler.handleJobSubmitted(jobId, rdd, func, partitions, callSite, listener, properties)</span><br><span class="line">   // 此处省略了其它情况</span><br><span class="line">    case ...</span><br><span class="line">    </span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>接受到JobShumitted消息后，调用dagScheduler.handlerJobSummited提交job。下面是handleJobSubmitted的核心代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">private[scheduler] def handleJobSubmitted(jobId: Int,</span><br><span class="line">      finalRDD: RDD[_],</span><br><span class="line">      func: (TaskContext, Iterator[_]) =&gt; _,</span><br><span class="line">      partitions: Array[Int],</span><br><span class="line">      callSite: CallSite,</span><br><span class="line">      listener: JobListener,</span><br><span class="line">      properties: Properties) &#123;</span><br><span class="line">    var finalStage: ResultStage = null</span><br><span class="line">    try &#123;</span><br><span class="line">      // New stage creation may throw an exception if, for example, jobs are run on a</span><br><span class="line">      // HadoopRDD whose underlying HDFS files have been deleted.</span><br><span class="line">      finalStage = createResultStage(finalRDD, func, partitions, jobId, callSite)</span><br><span class="line">    &#125; catch &#123;</span><br><span class="line">        ...</span><br><span class="line">        return</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    val job = new ActiveJob(jobId, finalStage, callSite, listener, properties)</span><br><span class="line">   ...</span><br><span class="line">    logInfo(&quot;Parents of final stage: &quot; + finalStage.parents)</span><br><span class="line">    logInfo(&quot;Missing parents: &quot; + getMissingParentStages(finalStage))</span><br><span class="line"></span><br><span class="line">    val jobSubmissionTime = clock.getTimeMillis()</span><br><span class="line">    jobIdToActiveJob(jobId) = job</span><br><span class="line">    activeJobs += job</span><br><span class="line">    finalStage.setActiveJob(job)</span><br><span class="line">    val stageIds = jobIdToStageIds(jobId).toArray</span><br><span class="line">    val stageInfos = stageIds.flatMap(id =&gt; stageIdToStage.get(id).map(_.latestInfo))</span><br><span class="line">    listenerBus.post(</span><br><span class="line">      SparkListenerJobStart(job.jobId, jobSubmissionTime, stageInfos, properties))</span><br><span class="line">    submitStage(finalStage)</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>上述代码最后调用submitStage提交stage。在此之前需要创建stage，上面方法中有两个地方可能会创建stage。</p>
+<ol>
+<li>createResultStage</li>
+<li>getMissingParentStages</li>
+</ol>
+<p>前面提到Stage分为两种：ResultStage和ShuffleMapStage，对于一个job而言，ResultStage是其最后阶段，收集job运行的结果,一个job对应的RDD DAG划分中，只存在一个ResultStage和多个ShuffleMapStage。</p>
+<p>上面1中createResultStage会创建ResultStage，但是ResultStage，创建过程中会判断当前stage是否存在依赖上游stage，如果存在就会一直往上游追溯，从上至下创建。每一个stage有一个id，创建出来的stage根据id缓存，避免重复创建。</p>
+<p>上面2中getMissingParentStages，则会在当前stage有上游依赖时递归的创建所有的上游依赖。</p>
+<p>下图描述了1,2两个方法的调用图，<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">creatResultStage               getMissingParentStages</span><br><span class="line">           |                          |</span><br><span class="line">           |__________________________|</span><br><span class="line">           v</span><br><span class="line">getOrCreateParentStages &lt;---------------------|</span><br><span class="line">          |                                   |</span><br><span class="line">          v                                   |</span><br><span class="line">getOrCreateShuffleMapStage                    |</span><br><span class="line">         |  当前以及所有存在的上游stage都要创建     |                                    |</span><br><span class="line">         v                                    |</span><br><span class="line">createShuffleMapStage-------------------------| 尝试创建上游stage，然后创建自己</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li><p>createResultStage</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">private def createResultStage(</span><br><span class="line">     rdd: RDD[_],</span><br><span class="line">     func: (TaskContext, Iterator[_]) =&gt; _,</span><br><span class="line">     partitions: Array[Int],</span><br><span class="line">     jobId: Int,</span><br><span class="line">     callSite: CallSite): ResultStage = &#123;</span><br><span class="line">   val parents = getOrCreateParentStages(rdd, jobId)</span><br><span class="line">   val id = nextStageId.getAndIncrement()</span><br><span class="line">   val stage = new ResultStage(id, rdd, func, partitions, parents, jobId, callSite)</span><br><span class="line">   stageIdToStage(id) = stage</span><br><span class="line">   updateJobIdStageIdMaps(jobId, stage)</span><br><span class="line">   stage</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>上述代码中，先是调用getOrCreateParentStages,递归的创建所有上游的stage</li>
+<li>stageId是ResultStage的id，这里是递增的，但是下面说道ShuffleMapStage的id则是shuffleid</li>
+</ul>
+</li>
+<li><p>getOrCreateParentStages<br>方法代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">private def getOrCreateParentStages(rdd: RDD[_], firstJobId: Int): List[Stage] = &#123;</span><br><span class="line">    getShuffleDependencies(rdd).map &#123; shuffleDep =&gt;</span><br><span class="line">      getOrCreateShuffleMapStage(shuffleDep, firstJobId)</span><br><span class="line">    &#125;.toList</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>getShuffleDependencies(rdd)，一直追溯rdd的依赖直到依赖类型为ShuffleDenpendency，这个方法实现了广度遍历的过程。而且它只返回rdd的直属父shuffle依赖，祖先shuffle依赖不返回，下面有个例子说明：<br>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">  E &lt;------ A &lt;------ B &lt;------- C</span><br><span class="line">                                  |</span><br><span class="line">                       D &lt;--------|</span><br><span class="line">假设上面都是shuffle依赖，getShuffleDependedency(C)只返回B，D</span><br></pre></td></tr></table></figure></p>
+<p>回到方法本身，对C的每一个shuffle依赖B，D，调用<code>getOrCreateShuffleMapStage</code>创建stage。</p>
+<ol>
+<li><p>getOrCreateShuffleMapStage<br>假设先对B创建stage，代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">private def getOrCreateShuffleMapStage(</span><br><span class="line">      shuffleDep: ShuffleDependency[_, _, _],</span><br><span class="line">      firstJobId: Int): ShuffleMapStage = &#123;</span><br><span class="line">    shuffleIdToMapStage.get(shuffleDep.shuffleId) match &#123;</span><br><span class="line">      case Some(stage) =&gt;</span><br><span class="line">        stage</span><br><span class="line"></span><br><span class="line">      case None =&gt;</span><br><span class="line">        // Create stages for all missing ancestor shuffle dependencies.</span><br><span class="line">        getMissingAncestorShuffleDependencies(shuffleDep.rdd).foreach &#123; dep =&gt;</span><br><span class="line">          // Even though getMissingAncestorShuffleDependencies only returns shuffle dependencies</span><br><span class="line">          // that were not already in shuffleIdToMapStage, it&apos;s possible that by the time we</span><br><span class="line">          // get to a particular dependency in the foreach loop, it&apos;s been added to</span><br><span class="line">          // shuffleIdToMapStage by the stage creation process for an earlier dependency. See</span><br><span class="line">          // SPARK-13902 for more information.</span><br><span class="line">          if (!shuffleIdToMapStage.contains(dep.shuffleId)) &#123;</span><br><span class="line">            createShuffleMapStage(dep, firstJobId)</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        // Finally, create a stage for the given shuffle dependency.</span><br><span class="line">        createShuffleMapStage(shuffleDep, firstJobId)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>参数shuffleDep，即C到B的依赖,shuffleDep.rdd即为B</li>
+<li>getMissingAncestorShuffleDependencies(B)，此时会返回B所有的祖先shuffle 依赖，也就是 B对A的依赖，和A对E的依赖</li>
+<li>下面4中代码中，每个ShuffleMapStage创建后都会映射到shuffle id上，假设新建的ShuffleMapStage作用于B，那么他映射的shuffleid就是B&lt;-C之间的shuffle的id。因此方法里可以根据shuffleId到shuffleIdToMapStage检索，避免重复创建，</li>
+<li>对于不存在的ShuffleMapStage， 调用createShuffleMapStage创建stage。</li>
+</ul>
+</li>
+<li><p>createShuffleMapStage<br>对于B而言，先创建A，代码如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">createShuffleMapStage</span></span>(shuffleDep: <span class="type">ShuffleDependency</span>[_, _, _], jobId: <span class="type">Int</span>): <span class="type">ShuffleMapStage</span> = &#123;</span><br><span class="line"> <span class="keyword">val</span> rdd = shuffleDep.rdd</span><br><span class="line"> <span class="keyword">val</span> numTasks = rdd.partitions.length</span><br><span class="line"> <span class="keyword">val</span> parents = getOrCreateParentStages(rdd, jobId)</span><br><span class="line"> <span class="keyword">val</span> id = nextStageId.getAndIncrement()</span><br><span class="line"> <span class="keyword">val</span> stage = <span class="keyword">new</span> <span class="type">ShuffleMapStage</span>(id, rdd, numTasks, parents, jobId, rdd.creationSite, shuffleDep)</span><br><span class="line"></span><br><span class="line"> stageIdToStage(id) = stage</span><br><span class="line"> shuffleIdToMapStage(shuffleDep.shuffleId) = stage</span><br><span class="line"> updateJobIdStageIdMaps(jobId, stage)</span><br><span class="line"></span><br><span class="line"> <span class="keyword">if</span> (mapOutputTracker.containsShuffle(shuffleDep.shuffleId)) &#123;</span><br><span class="line">   <span class="comment">// A previously run stage generated partitions for this shuffle, so for each output</span></span><br><span class="line">   <span class="comment">// that's still available, copy information about that output location to the new stage</span></span><br><span class="line">   <span class="comment">// (so we don't unnecessarily re-compute that data).</span></span><br><span class="line">   <span class="keyword">val</span> serLocs = mapOutputTracker.getSerializedMapOutputStatuses(shuffleDep.shuffleId)</span><br><span class="line">   <span class="keyword">val</span> locs = <span class="type">MapOutputTracker</span>.deserializeMapStatuses(serLocs)</span><br><span class="line">   (<span class="number">0</span> until locs.length).foreach &#123; i =&gt;</span><br><span class="line">     <span class="keyword">if</span> (locs(i) ne <span class="literal">null</span>) &#123;</span><br><span class="line">       <span class="comment">// locs(i) will be null if missing</span></span><br><span class="line">       stage.addOutputLoc(i, locs(i))</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br><span class="line"> &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="comment">// Kind of ugly: need to register RDDs with the cache and map output tracker here</span></span><br><span class="line">   <span class="comment">// since we can't do it in the RDD constructor because # of partitions is unknown</span></span><br><span class="line">   logInfo(<span class="string">"Registering RDD "</span> + rdd.id + <span class="string">" ("</span> + rdd.getCreationSite + <span class="string">")"</span>)</span><br><span class="line">   mapOutputTracker.registerShuffle(shuffleDep.shuffleId, rdd.partitions.length)</span><br><span class="line"> &#125;</span><br><span class="line"> stage</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>此时shuffleDep即B-&gt;A的依赖，shuffleDep.rdd就是A</li>
+<li>上述代码又getOrCreateParentStages(A)创建A的上游，A上游是E，E没有上游节点，此处E所所处ShuffleMapStage被创建，stageid即A-&gt;E的shuffleId，stage作用于E</li>
+<li>所有的上游stages创建完成了，创建当前shuffleDep产生的ShuffleMapStage。建立shuffleId到ShuffleMapStage的映射</li>
+<li>shuffleId在建立RDD DAG图之后就是一直不变的，而stageId每提交一次job都会变动，同一个job可能因为某个环节失败了重新提交，但是失败的job中的某个ShuffleMapStage的输出数据可是完好的可重复利用。if分支使用mapoutTracker检查特定shuffle阶段的数据是不是完好的，然后可以重复利用，避免再此计算。</li>
+<li>创建stage之后就返回上一层。</li>
+</ul>
+</li>
+</ol>
+<p>下图描述了最终创建出来的stage的依赖图：</p>
+<h1 id="3-提交stage"><a href="#3-提交stage" class="headerlink" title="3 提交stage"></a>3 提交stage</h1><p>第2节最前面，handleJobSubmitted，创建完所有stage之后调用submitStage(finalStage)提交stage,代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> def <span class="title">submitStage</span><span class="params">(stage: Stage)</span> </span>&#123;</span><br><span class="line">   val jobId = activeJobForStage(stage)</span><br><span class="line">   <span class="keyword">if</span> (jobId.isDefined) &#123;</span><br><span class="line">     logDebug(<span class="string">"submitStage("</span> + stage + <span class="string">")"</span>)</span><br><span class="line">     <span class="keyword">if</span> (!waitingStages(stage) &amp;&amp; !runningStages(stage) &amp;&amp; !failedStages(stage)) &#123;</span><br><span class="line">       val missing = getMissingParentStages(stage).sortBy(_.id)</span><br><span class="line">       logDebug(<span class="string">"missing: "</span> + missing)</span><br><span class="line">       <span class="keyword">if</span> (missing.isEmpty) &#123;</span><br><span class="line">         logInfo(<span class="string">"Submitting "</span> + stage + <span class="string">" ("</span> + stage.rdd + <span class="string">"), which has no missing parents"</span>)</span><br><span class="line">         submitMissingTasks(stage, jobId.get)</span><br><span class="line">       &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">         <span class="keyword">for</span> (parent &lt;- missing) &#123;</span><br><span class="line">           submitStage(parent)</span><br><span class="line">         &#125;</span><br><span class="line">         waitingStages += stage</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">   &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     abortStage(stage, <span class="string">"No active job for stage "</span> + stage.id, None)</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>waitingStages、runningStage、failedStages分别记录那些还有未完成的上游stage的stage、正在executor上运行的stage和失败的stages</li>
+<li>getMissingParentStages获得没有提交或者没有完成的上游stage，stage不存在就创建</li>
+<li>submitMissingTasks在没有未完成的上游stage的情况下，提交当前stage</li>
+<li>有上游stage未完成，将当前stage加入到waitingStages队列中</li>
+</ol>
+<p>上面submitStages代码中将根据stage创建任务提交的是submitMissingTasks，其代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">private</span> def <span class="title">submitMissingTasks</span><span class="params">(stage: Stage, jobId: Int)</span> </span>&#123;</span><br><span class="line">  <span class="comment">// stage可能被多次提交，stage作用的rdd可能在之前几次提交运行中有写</span></span><br><span class="line">  partition已经有了计算计算，先找出没有结果的partition</span><br><span class="line">  val partitionsToCompute: Seq[Int] = stage.findMissingPartitions()</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 一个分区一个task，找出一组task运行的位置</span></span><br><span class="line">  val taskIdToLocations: Map[Int, Seq[TaskLocation]] = <span class="keyword">try</span> &#123;</span><br><span class="line">    stage match &#123;</span><br><span class="line">      <span class="keyword">case</span> s: ShuffleMapStage =&gt;</span><br><span class="line">        partitionsToCompute.map &#123; id =&gt; (id, getPreferredLocs(stage.rdd, id))&#125;.toMap</span><br><span class="line">      <span class="keyword">case</span> s: ResultStage =&gt;</span><br><span class="line">        partitionsToCompute.map &#123; id =&gt;</span><br><span class="line">          val p = s.partitions(id)</span><br><span class="line">          (id, getPreferredLocs(stage.rdd, p))</span><br><span class="line">        &#125;.toMap</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">      ...</span><br><span class="line">      <span class="keyword">return</span></span><br><span class="line">  &#125;</span><br><span class="line">   <span class="comment">// stage只有一个stageId，但是stage的每次提交都会有新的attempId</span></span><br><span class="line">  stage.makeNewStageAttempt(partitionsToCompute.size, taskIdToLocations.values.toSeq)</span><br><span class="line">  listenerBus.post(SparkListenerStageSubmitted(stage.latestInfo, properties))</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 根据stage序列化任务信息，ShuffleMapStage对应ShuffleMapTask，主要信息有task运行作用的rdd，和依赖</span></span><br><span class="line">  <span class="comment">// ResultStage对应ResultTask，主要信息有rdd和func（这个func就是前面wordCount代码中foreach 这个action的参数转换来的，只有ResultStage有）</span></span><br><span class="line">  var taskBinary: Broadcast[Array[Byte]] = <span class="keyword">null</span></span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line"> </span><br><span class="line">    val taskBinaryBytes: Array[Byte] = stage match &#123;</span><br><span class="line">      <span class="keyword">case</span> stage: ShuffleMapStage =&gt;</span><br><span class="line">        JavaUtils.bufferToArray(</span><br><span class="line">          closureSerializer.serialize((stage.rdd, stage.shuffleDep): AnyRef))</span><br><span class="line">      <span class="keyword">case</span> stage: ResultStage =&gt;</span><br><span class="line">        JavaUtils.bufferToArray(closureSerializer.serialize((stage.rdd, stage.func): AnyRef))</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 将task信息作为广播变量传输，executor执行task时需要根据广播变量获取task信息，task很多时，使用广播变量传输能有效减少driver上的压力</span></span><br><span class="line">    taskBinary = sc.broadcast(taskBinaryBytes)</span><br><span class="line">  &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"> <span class="comment">// 创建task，一个分区一个task</span></span><br><span class="line">  val tasks: Seq[Task[_]] = <span class="keyword">try</span> &#123;</span><br><span class="line">    val serializedTaskMetrics = closureSerializer.serialize(stage.latestInfo.taskMetrics).array()</span><br><span class="line">    stage match &#123;</span><br><span class="line">      <span class="keyword">case</span> stage: ShuffleMapStage =&gt;</span><br><span class="line">        stage.pendingPartitions.clear()</span><br><span class="line">        partitionsToCompute.map &#123; id =&gt;</span><br><span class="line">          val locs = taskIdToLocations(id)</span><br><span class="line">          val part = stage.rdd.partitions(id)</span><br><span class="line">          stage.pendingPartitions += id</span><br><span class="line">          <span class="keyword">new</span> ShuffleMapTask(stage.id, stage.latestInfo.attemptId,</span><br><span class="line">            taskBinary, part, locs, properties, serializedTaskMetrics, Option(jobId),</span><br><span class="line">            Option(sc.applicationId), sc.applicationAttemptId)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">case</span> stage: ResultStage =&gt;</span><br><span class="line">        partitionsToCompute.map &#123; id =&gt;</span><br><span class="line">          val p: Int = stage.partitions(id)</span><br><span class="line">          val part = stage.rdd.partitions(p)</span><br><span class="line">          val locs = taskIdToLocations(id)</span><br><span class="line">          <span class="keyword">new</span> ResultTask(stage.id, stage.latestInfo.attemptId,</span><br><span class="line">            taskBinary, part, locs, id, properties, serializedTaskMetrics,</span><br><span class="line">            Option(jobId), Option(sc.applicationId), sc.applicationAttemptId)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">    <span class="function"><span class="keyword">case</span> <span class="title">NonFatal</span><span class="params">(e)</span> </span>=&gt;</span><br><span class="line">      abortStage(stage, s<span class="string">"Task creation failed: $e\n$&#123;Utils.exceptionString(e)&#125;"</span>, Some(e))</span><br><span class="line">      runningStages -= stage</span><br><span class="line">      <span class="keyword">return</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">if</span> (tasks.size &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    logInfo(s<span class="string">"Submitting $&#123;tasks.size&#125; missing tasks from $stage ($&#123;stage.rdd&#125;) (first 15 "</span> +</span><br><span class="line">      s<span class="string">"tasks are for partitions $&#123;tasks.take(15).map(_.partitionId)&#125;)"</span>)</span><br><span class="line">    <span class="comment">// 使用TaskScheduler提交tasks</span></span><br><span class="line">    taskScheduler.submitTasks(<span class="keyword">new</span> TaskSet(</span><br><span class="line">      tasks.toArray, stage.id, stage.latestInfo.attemptId, jobId, properties))</span><br><span class="line">    stage.latestInfo.submissionTime = Some(clock.getTimeMillis())</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// Because we posted SparkListenerStageSubmitted earlier, we should mark</span></span><br><span class="line">    <span class="comment">// the stage as completed here in case there are no tasks to run</span></span><br><span class="line">    markStageAsFinished(stage, None)</span><br><span class="line"></span><br><span class="line">    val debugString = stage match &#123;</span><br><span class="line">      <span class="keyword">case</span> stage: ShuffleMapStage =&gt;</span><br><span class="line">        s<span class="string">"Stage $&#123;stage&#125; is actually done; "</span> +</span><br><span class="line">          s<span class="string">"(available: $&#123;stage.isAvailable&#125;,"</span> +</span><br><span class="line">          s<span class="string">"available outputs: $&#123;stage.numAvailableOutputs&#125;,"</span> +</span><br><span class="line">          s<span class="string">"partitions: $&#123;stage.numPartitions&#125;)"</span></span><br><span class="line">      <span class="keyword">case</span> stage : ResultStage =&gt;</span><br><span class="line">        s<span class="string">"Stage $&#123;stage&#125; is actually done; (partitions: $&#123;stage.numPartitions&#125;)"</span></span><br><span class="line">    &#125;</span><br><span class="line">    logDebug(debugString)</span><br><span class="line">    submitWaitingChildStages(stage)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面在代码注释中简单介绍了Stage转换成Task，然后使用TaskScheduler提交的过程。</p>
+<p>关于TaskScheduler对任务的管理和提交见另一篇文章<a href="">Spark 任务调度-TaskScheduler</a>。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/09/Spark-Streaming-3-Receiver和ReceiverTacker/" rel="next" title="Spark Streaming(3) - Receiver和ReceiverTacker">
+                <i class="fa fa-chevron-left"></i> Spark Streaming(3) - Receiver和ReceiverTacker
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/06/24/scala学习-隐式转换和隐式参数/" rel="prev" title="scala学习 - 隐式转换和隐式参数">
+                scala学习 - 隐式转换和隐式参数 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1. 前言</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-基本概念"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 基本概念</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-划分Stage"><span class="nav-number">2.</span> <span class="nav-text">2. 划分Stage</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-提交stage"><span class="nav-number">3.</span> <span class="nav-text">3 提交stage</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

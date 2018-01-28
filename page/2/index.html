@@ -232,6 +232,376 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/18/maven插件-1-使用插件/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/18/maven插件-1-使用插件/" itemprop="url">maven插件(1) - 使用插件</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-18T20:27:56+08:00">
+                2017-11-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><blockquote>
+<p>Maven is - at its heart - a plugin execution framework; all work is done by plugins. </p>
+</blockquote>
+<p>maven实际上一个插件执行框架，所有的工作实际上都是通过插件完成，一个插件通常提供若干目标（goal），通过如下形式的命令执行插件目标：<br><code>mvn [plugin name]:[goal name]</code></p>
+<p>例如可以通过编译插件compiler去编译目标，命令如下：<br><code>mvn compiler:compile</code></p>
+<p><strong>插件类型</strong><br>插件有两类：</p>
+<table>
+<thead>
+<tr>
+<th>插件类型</th>
+<th>解释</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build plugins</td>
+<td>build项目时期执行这类插件，且这类插件必须配置在pom的<build></build>中</td>
+<td></td>
+</tr>
+<tr>
+<td>report plugins</td>
+<td>mvn site期间执行的插件，用于生成项目报表文档之类的，需要配置在pom的<reporting></reporting>之间</td>
+</tr>
+</tbody>
+</table>
+<p>由于我从来没有用过report plugin，所以本文只会讲build plugins。</p>
+<h1 id="2-生命周期"><a href="#2-生命周期" class="headerlink" title="2. 生命周期"></a>2. 生命周期</h1><p>maven是一种基于构建生命周期(build lifecycle)的项目构建工具, 也就是说一个项目的构建和发布是要经历几个过程的，目前主要包含三个过程：</p>
+<ol>
+<li>clean</li>
+<li>default</li>
+<li>site</li>
+</ol>
+<p>这其中每一个过程又有若干个阶段（phase）组成。下面列表只是简单列出了开发者比较常见的phase：<br><strong>1. clean</strong></p>
+<table>
+<thead>
+<tr>
+<th>phase</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>clean</td>
+<td>起初之前一起build生成的文件</td>
+</tr>
+</tbody>
+</table>
+<p><strong>2. default</strong></p>
+<table>
+<thead>
+<tr>
+<th>phase</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>validate</td>
+<td>对项目的必要信息或资源进行验证</td>
+</tr>
+<tr>
+<td>initialize</td>
+<td>初始化操作，比如常见目录，设置属性</td>
+</tr>
+<tr>
+<td>compile</td>
+<td>编译源文件</td>
+</tr>
+<tr>
+<td>test</td>
+<td>使用测试框架跑所有测试用例</td>
+</tr>
+<tr>
+<td>package</td>
+<td>打包项目</td>
+</tr>
+<tr>
+<td>install</td>
+<td>部署到本地repository</td>
+</tr>
+<tr>
+<td>deploy</td>
+<td>发布到远程仓库</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3. site</strong></p>
+<table>
+<thead>
+<tr>
+<th>phase</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>site</td>
+<td>生成项目文档的网页资源</td>
+</tr>
+</tbody>
+</table>
+<p>使用过mvn的就会发现，一个phase对应一个mvn的命令，比如当执行<code>mvn compile</code>命令时就是执行该phase之前的所有phase。<br>但是前言中说过mvn是通过插件来执行任务的，当执行<code>mvn compile</code>这个phase时，实际上是执行绑定在compile这个phase上的插件目标，由于compile这个phase默认绑定了<code>compiler: compile</code>（compiler插件的compile目标）,因此执行<code>mvn compile</code>等于去执行了<code>mvn compiler:compile</code></p>
+<p>再例如：执行<code>mvn package</code> 实际上执行了插件<code>mvn jar:jar</code>(注意此处假设pom里配置了<packaging>jar<package>), 因为package这个phase默认绑定了<code>jar:jar</code>这个插件目标。</package></packaging></p>
+<p><strong>附：</strong><br>这一节只是简单介绍了插件构建的生命周期一个，省略了一些内容，更多的细节请参考官方文档介绍<a href="http://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html#Lifecycle_Reference" target="_blank" rel="noopener">mvn 生命周期</a></p>
+<h1 id="3-插件配置"><a href="#3-插件配置" class="headerlink" title="3. 插件配置"></a>3. 插件配置</h1><p>本文只介绍build plugin， build plugin需要写在pom文件的<code>&lt;build&gt;&lt;/build&gt;</code>中,<br>一个插件通常包含如下配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0</span></span></span><br><span class="line"><span class="tag"><span class="string">                      https://maven.apache.org/xsd/maven-4.0.0.xsd"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-jar-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.6<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">extensions</span>&gt;</span>false<span class="tag">&lt;/<span class="name">extensions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">inherited</span>&gt;</span>true<span class="tag">&lt;/<span class="name">inherited</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">classifier</span>&gt;</span>test<span class="tag">&lt;/<span class="name">classifier</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>...<span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">executions</span>&gt;</span>...<span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>一个<plugin></plugin>表示一个插件， <groupid>,<artifactid>,<version>都是引入必要配置。插件本质上托管在mvn仓库里。</version></artifactid></groupid></li>
+<li><inherited>表示是否当前pom的子pom中继承这个插件配置，true表示子pom继承父pom这个插件配置，那么你就可以在子pom上通过mvn命令使用这个插件</inherited></li>
+<li><configuration>中包含了插件类实例化时用于初始化类成员信息</configuration></li>
+<li><p><dependencies>, 插件自身也会依赖外部包，<dependencies>中可以为插件指定特定的依赖包， 引入方式如下:</dependencies></dependencies></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependency</span>&gt;</span> </span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>...<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>...<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">version</span>&gt;</span>...<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><executions>, 一个插件可能包含多个goal，<executions>中可以单独为某个goal指定配置，以及将goal绑定到某个phase。executions包含的elements如下：</executions></executions></p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--需要在&lt;executions&gt;里面唯一的id--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">id</span>&gt;</span><span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">          <span class="comment">&lt;!--列出需要特定去配置的所有goal--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">           <span class="tag">&lt;<span class="name">goal</span>&gt;</span>run<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--将这些goal绑定到phase--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">phase</span>&gt;</span>verify<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--指定子pom是否继承这些配置--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">inherited</span>&gt;</span>false<span class="tag">&lt;/<span class="name">inherited</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="comment">&lt;!--这里指定配置--&gt;</span></span><br><span class="line">         <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">         ...</span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">       ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>一个示例</strong><br>比如下面就是一个几乎所有人都会用到的插件配置，compiler：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-compiler-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.5.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span>  <span class="comment">&lt;!--指定compiler插件版本信息--&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="comment">&lt;!--插件实例化参数，这个参数是设置javac -source的值--&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">source</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">source</span>&gt;</span>  </span><br><span class="line">           <span class="comment">&lt;!--插件实例化参数，这个参数是设置javac -target的值--&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">target</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">target</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"></span><br><span class="line">这里没有指定<span class="tag">&lt;<span class="name">executions</span>&gt;</span>，因为compiler插件的目标compile默认被绑定到compile这个phase上了，</span><br><span class="line">目标testCompile被绑定到了test-compile这个phase上了。</span><br><span class="line">当然你可以显式指定，加入如下配置即可：</span><br><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">id</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">goal</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">phase</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">id</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">phase</span>&gt;</span>test-compile<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                 <span class="tag">&lt;<span class="name">goal</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>所以当执行<code>mvn compile</code>时其实执行了插件目标<code>mvn compiler:compile</code>,执行<code>mvn test-compile</code>时执行了插件目标<code>mvn compiler:testCompile</code>.</p>
+<p><strong>附</strong></p>
+<ol>
+<li>关于插件参数配置参考<a href="http://maven.apache.org/guides/mini/guide-configuring-plugins.html" target="_blank" rel="noopener">guide-configuring-plugins</a></li>
+<li>关于pom中使用插件参考<a href="http://maven.apache.org/pom.html" target="_blank" rel="noopener">plugins in pom</a></li>
+<li>关于maven插件列表参考<a href="http://maven.apache.org/plugins/" target="_blank" rel="noopener">available plugins</a></li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/15/spark如何只在map端做完成reduce的工作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/11/15/spark如何只在map端做完成reduce的工作/" itemprop="url">spark如何只在map端做完成reduce的工作</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-15T20:20:24+08:00">
+                2017-11-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.  前言"></a>1.  前言</h1><p>有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直接在map端就去完成reduce操作。</p>
+<p>比如下面是一个word count在2个分区里面的分布：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">------partition 1----------</span><br><span class="line">(failure,1)</span><br><span class="line">(count,1)</span><br><span class="line">(thief,1)</span><br><span class="line">(failure,1)</span><br><span class="line"></span><br><span class="line">------partition 2--------</span><br><span class="line">(fortification,1)</span><br><span class="line">(peek,1) </span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,1)</span><br></pre></td></tr></table></figure></p>
+<p>由于相同的word都在同一个分区里面了，没必要去通过reduceByKey去完成word count操作。</p>
+<h1 id="2-解决方法"><a href="#2-解决方法" class="headerlink" title="2. 解决方法"></a>2. 解决方法</h1><p>实现一个RDD，在其compute方法里完成按key聚合，实现如下:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> K: key type</span></span><br><span class="line"><span class="comment"> V: 上游rdd中value的type</span></span><br><span class="line"><span class="comment"> C: V 经过reduce之后的type</span></span><br><span class="line"><span class="comment">参考ShufferedRDD</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MapsideReduceRDD</span>[<span class="type">K</span>:<span class="type">ClassTag</span>, <span class="type">V</span>:<span class="type">ClassTag</span>, <span class="type">C</span>:<span class="type">ClassTag</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">   // 上游rdd，要求上游的rdd中数据已经转换成(key,value</span>)<span class="title">的形式</span></span></span><br><span class="line"><span class="class">  <span class="title">@transient</span> <span class="title">var</span> <span class="title">prev</span> </span>: <span class="type">RDD</span>[_ &lt;: <span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]</span><br><span class="line"></span><br><span class="line">) <span class="keyword">extends</span> <span class="type">RDD</span>[(<span class="type">K</span>,<span class="type">C</span>)](prev)&#123;</span><br><span class="line">  <span class="comment">// 需要一个aggregator去完成value的聚合, reduceByKey也会创建这个</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">var</span> aggregator : <span class="type">Option</span>[<span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]] = <span class="type">None</span></span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">setAggregator</span></span>(aggregator: <span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]):<span class="keyword">this</span>.<span class="keyword">type</span> =&#123;</span><br><span class="line">    <span class="keyword">this</span>.aggregator = <span class="type">Option</span>(aggregator)</span><br><span class="line">    <span class="keyword">this</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">compute</span></span>(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[(<span class="type">K</span>, <span class="type">C</span>)] = &#123;</span><br><span class="line">    <span class="comment">/* 创建一个ExternalAppendOnlyMap，这个数据结构是spark中提供的，插入</span></span><br><span class="line"><span class="comment"> .  (K,V)的数据，然后按照传递给他聚合方法完成(K,V)的聚合，返回(K,C)的数据</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">    <span class="keyword">val</span> externalMap = createExternalMap</span><br><span class="line">  <span class="comment">// 这里迭代上游rdd中(K,V)类型的记录</span></span><br><span class="line">    <span class="keyword">val</span> rddIter = dependencies(<span class="number">0</span>).rdd.asInstanceOf[<span class="type">RDD</span>[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]].iterator(split, context)</span><br><span class="line">    <span class="comment">// 插入到externalMap中</span></span><br><span class="line">    externalMap.insertAll(rddIter)</span><br><span class="line">   <span class="comment">// 返回</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">InterruptibleIterator</span>(context,</span><br><span class="line">      externalMap.iterator</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>] = firstParent[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]].partitions</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">createExternalMap</span></span>: <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>] = &#123;</span><br><span class="line">    require(aggregator.nonEmpty, <span class="string">"aggregator should not be empty"</span>)</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">      创建ExternalAppendOnlyMap， 它需要一下参数:</span></span><br><span class="line"><span class="comment">      - 一个V =&gt; C 类型的函数，用于迭代时发现某个key的第一个value，将它转换成C</span></span><br><span class="line"><span class="comment">     - 一个(C,V) =&gt; C类型的函数，用于将value合并到C上</span></span><br><span class="line"><span class="comment">     - 一个(C,C) =&gt; C类型的函数，将两个部分聚合的结果合并到一起</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>](aggregator.get.createCombiner, aggregator.get.mergeValue, aggregator.get.mergeCombiners)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>ExternalAppendOnlyMap会在必要时spill到磁盘</p>
+<h2 id="2-1-测试"><a href="#2-1-测试" class="headerlink" title="2.1 测试"></a>2.1 测试</h2><p>测试类如下：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">MapsideReduceTest</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>()</span><br><span class="line">    <span class="keyword">val</span> words = <span class="type">Seq</span>(<span class="type">Seq</span>(<span class="string">"failure"</span>,<span class="string">"count"</span>,<span class="string">"thief"</span>,<span class="string">"failure"</span>,<span class="string">"count"</span>),<span class="type">Seq</span>(<span class="string">"fortification"</span>,<span class="string">"peek"</span>,<span class="string">"lepta"</span>,<span class="string">"peek"</span>));</span><br><span class="line">    <span class="comment">// 分两个分区，第一个分区包含Seq("failure","count","thief","failure","count")</span></span><br><span class="line">    <span class="comment">// 这样相同的word只在一个分区里面，然后统计word count</span></span><br><span class="line">    <span class="keyword">val</span> wordsRDD = sc.parallelize(words, <span class="number">2</span>)</span><br><span class="line">    <span class="comment">// flatMap将Seq()展开，然后调用map转换成(failure,1)这种数据</span></span><br><span class="line">    <span class="keyword">val</span> wordsCount = wordsRDD.flatMap(seq =&gt; seq).map(word =&gt; (word,<span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> aggregator = createAggregator</span><br><span class="line">    <span class="keyword">val</span> mapsideReduceRDD = <span class="keyword">new</span> <span class="type">MapsideReduceRDD</span>[<span class="type">String</span>, <span class="type">Int</span>, <span class="type">Int</span>](wordsCount).setAggregator(aggregator)</span><br><span class="line">    mapsideReduceRDD.saveAsTextFile(<span class="string">"/Users/eric/mapsideReduce"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">createAggregator</span></span>: <span class="type">Aggregator</span>[<span class="type">String</span>,<span class="type">Int</span>,<span class="type">Int</span>] =&#123;</span><br><span class="line">    <span class="keyword">val</span> createCombiner: <span class="type">Int</span> =&gt; <span class="type">Int</span> = value =&gt; value</span><br><span class="line">    <span class="keyword">val</span> mergeValue : (<span class="type">Int</span>, <span class="type">Int</span>) =&gt; <span class="type">Int</span> = (mergedValue, newValue) =&gt; &#123;</span><br><span class="line">      mergedValue + newValue</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> mergeCombiner = mergeValue</span><br><span class="line"></span><br><span class="line">    <span class="keyword">new</span> <span class="type">Aggregator</span>[<span class="type">String</span>, <span class="type">Int</span>,<span class="type">Int</span>](createCombiner, mergeValue, mergeCombiner)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>提交后测试结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">产生2个输出文件以及内容：</span><br><span class="line">------ part-00000 -------</span><br><span class="line">(failure,2)</span><br><span class="line">(count,2)</span><br><span class="line">(thief,1)</span><br><span class="line"></span><br><span class="line">------- part-00001 ------</span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,2)</span><br><span class="line">(fortification,1)</span><br></pre></td></tr></table></figure></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/12/Spark内存管理/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -551,7 +921,7 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-11T21:06:14+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-11T11:57:00+08:00">
                 2017-11-11
               </time>
             
@@ -604,9 +974,9 @@
 </thead>
 <tbody>
 <tr>
-<td>int waitStatus</td>
+<td>waitStatus</td>
 <td>当前节点状态</td>
-<td>SIGNAL=-1 表示当前节点释放资源后需要唤醒他的后继阻塞中的节点，CANCELLED=1当前节点已经取消对资源的竞争，PROPAGATE=-3 用于竞争共享资源竞争，表示当前节点获取资源后，应该唤醒其他排队阻塞中获取该共享资源的竞争者，CONDITION=-2专门用于Condition的实现</td>
+<td>SIGNAL=-1 表示当前节点释放资源后需要唤醒他的后继阻塞中的节点; CANCELLED=1当前节点已经取消对资源的竞争; PROPAGATE=-3 用于竞争共享资源竞争，表示当前节点获取资源后，应该唤醒其他排队阻塞中获取该共享资源的竞争者; CONDITION=-2专门用于Condition的实现</td>
 </tr>
 <tr>
 <td>Node prev,next</td>
@@ -621,7 +991,7 @@
 <tr>
 <td>Node nextWaiter</td>
 <td></td>
-<td>当前节点是waitStatus是CONDITION是连接到下一个等待在同一个condition上的node，也可以是NODE的静态成员SHARED表示当前节点竞争共享资源，null表示竞争排他性资源</td>
+<td>如果waitStatus=CONDITION则nextWaiter连接到下一个等待在同一个condition上的node；nextWaiter也可以是class NODE的静态成员SHARED表示当前节点竞争共享资源；等于null表示竞争排他性资源</td>
 </tr>
 </tbody>
 </table>
@@ -633,30 +1003,32 @@
 </ol>
 <p>不同的node种类获取资源（对应入队操作）和释放资源（对应出队操作）都有所不同</p>
 <h3 id="2-2-2-入队操作"><a href="#2-2-2-入队操作" class="headerlink" title="2.2.2 入队操作"></a>2.2.2 入队操作</h3><p>也就是去竞争资源。<br>这里只介绍一下exclusive和shared node的入队操作</p>
-<h4 id="2-2-2-1-exclusive-node入队操作"><a href="#2-2-2-1-exclusive-node入队操作" class="headerlink" title="2.2.2.1 exclusive node入队操作"></a>2.2.2.1 exclusive node入队操作</h4><p>使用AQS竞争排他性资源时，需要调用如下两个接口之一：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*acquire获取资源失败（也就是队列中有更早进入排队的node），</span></span><br><span class="line"><span class="comment">那么当前竞争者加入队列尾部并且阻塞等待，且等待期间不会里线程中断操作*/</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp;</span><br><span class="line">            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">            selfInterrupt();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">和acquire不同的是竞争者等待期间是可以被中断</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireInterruptibly</span><span class="params">(<span class="keyword">long</span> arg)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (Thread.interrupted())</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg))</span><br><span class="line">            doAcquireInterruptibly(arg);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
-<p>两者都调用了tryAcquire(), 这个方法需要使用AQS是用户继承并实现它，并且这个调用不应该阻塞，之所以提供tryAcquire操作是因为当前竞争者可能已经获取了资源，那么在tryAcquire可以做一下判断，避免已经获取了资源后还去盲目的进去CLH队列排队。<br>典型的就是重进入锁ReentrantLock的实现，获取锁的线程可以再次获取锁，那么就可以在tryAcquire中做一下判断。</p>
-<p>关于参数arg，可以理解成获取资源数量吧，实际上这个跟AQS的一个重要的成员state有关，当用户使用AQS时，需要设置state这个整数值，关于这个state，应该可以当成是对资源状态的描述吧。比如ReenctrantLock中可以根据state是否等于0判断是否加锁了，以及state的值大小判断重进入锁重进入了几次。</p>
-<p><strong>2. acquireQueued()</strong><br>关于addWaiter()其实就是不停的使用CAS操作将当前节点加入CLH队列尾部。<br>下面是acquireQueued的代码实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 线程中断标记</span></span><br><span class="line">            <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                <span class="comment">// 当前节点的前驱</span></span><br><span class="line">                <span class="keyword">final</span> Node p = node.predecessor();</span><br><span class="line">                <span class="comment">// 如果前驱节点已经是队列头，那就以为者看起来没有竞争了，然后就调用tryAcquire尝试获取资源。</span></span><br><span class="line">                <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                    setHead(node);</span><br><span class="line">                    p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                    failed = <span class="keyword">false</span>;</span><br><span class="line">                    <span class="keyword">return</span> interrupted;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// 否则开始排队，阻塞。</span></span><br><span class="line">                <span class="comment">// shouldParkAfterFailedAcquire会将前驱节点的waitStatus标记成SIGNAL表示告诉前驱节点：你释放资源后需要唤醒我，我可能阻塞了</span></span><br><span class="line">                <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                    parkAndCheckInterrupt())</span><br><span class="line">                    <span class="comment">// 如果排队过程中被中断，记下来，不甩异常</span></span><br><span class="line">                    interrupted = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (failed)</span><br><span class="line">                cancelAcquire(node);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-2-2-1-exclusive-node入队操作"><a href="#2-2-2-1-exclusive-node入队操作" class="headerlink" title="2.2.2.1 exclusive node入队操作"></a>2.2.2.1 exclusive node入队操作</h4><p>使用AQS竞争排他性资源时，需要调用如下两个接口之一：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">调用acquire获取资源，这是一个阻塞操作直到获取到资源，且不可被中断。</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquire</span><span class="params">(<span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg) &amp;&amp;</span><br><span class="line">            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">            selfInterrupt();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">和acquire不同的是竞争者等待期间是可以被中断</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireInterruptibly</span><span class="params">(<span class="keyword">long</span> arg)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (Thread.interrupted())</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">        <span class="keyword">if</span> (!tryAcquire(arg))</span><br><span class="line">            doAcquireInterruptibly(arg);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>两者都调用了tryAcquire(), 这个方法需要使用AQS的用户继承并实现它，并且这个调用不应该阻塞，之所以提供tryAcquire操作是因为当前竞争者可能已经获取了资源，那么在tryAcquire可以做一下判断，避免已经获取了资源后还去盲目的进去CLH队列排队。<br>典型的就是重进入锁ReentrantLock的实现，获取锁的线程可以再次获取锁，那么就可以在tryAcquire中做一下判断。</p>
+<p>关于参数arg，可以理解成尝试获取资源数量吧，实际上这个跟AQS的一个重要的成员state有关，当用户使用AQS时，需要设置state这个整数值，关于这个state，应该可以当成是对资源状态的描述吧。比如ReenctrantLock中可以根据state是否等于0判断是否加锁了，以及state的值大小判断重进入锁加了几次锁。</p>
+<p>上面代码addWaiter()其实就是不停的使用CAS操作将当前节点加入CLH队列尾部。</p>
+<p><strong>2. acquireQueued()</strong></p>
+<p>下面是acquireQueued的代码实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">acquireQueued</span><span class="params">(<span class="keyword">final</span> Node node, <span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 线程中断标记</span></span><br><span class="line">            <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                <span class="comment">// 获得当前节点的前驱</span></span><br><span class="line">                <span class="keyword">final</span> Node p = node.predecessor();</span><br><span class="line">                <span class="comment">// 如果前驱节点已经是队列头，那就意味着看起来自己最优先获取到资源，然后就调用tryAcquire尝试获取资源。</span></span><br><span class="line">                <span class="keyword">if</span> (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                    setHead(node);</span><br><span class="line">                    p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                    failed = <span class="keyword">false</span>;</span><br><span class="line">                    <span class="keyword">return</span> interrupted;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">// 当前节点不是头节点则排队阻塞。</span></span><br><span class="line">                <span class="comment">// shouldParkAfterFailedAcquire会将前驱节点的waitStatus标记成SIGNAL表示告诉前驱节点：你释放资源后需要唤醒我，我可能阻塞了</span></span><br><span class="line">                <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                    parkAndCheckInterrupt())</span><br><span class="line">                    <span class="comment">// 如果排队过程中被中断，记下来，不甩异常</span></span><br><span class="line">                    interrupted = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (failed)</span><br><span class="line">                cancelAcquire(node);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
 <p>以上可以看出acquireQueued其实就是在不停的做如下尝试：</p>
 <ol>
-<li>判断当前节点是不是最前面了，是则尝试获取资源，获取成功就返回，获取失败或者不是最前面节点则阻塞等待，然后</li>
+<li>判断当前节点是不是最前面了，是则调用tryAcquire尝试获取资源，获取成功就返回，获取失败或者不是最前面节点则阻塞等待，然后到2</li>
 <li>无限等待然后被唤醒，继续1.</li>
 </ol>
 <p><strong>2. doAcquireInterruptibly()</strong><br>和acquireQueued的过程是一样的，就是等待的过程中被中断了立即甩异常</p>
-<h4 id="2-2-2-2-shared-node入队操作"><a href="#2-2-2-2-shared-node入队操作" class="headerlink" title="2.2.2.2 shared node入队操作"></a>2.2.2.2 shared node入队操作</h4><p>和exelusive模式一样都有可中断和不可中断两个，如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireShared</span><span class="params">(<span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (tryAcquireShared(arg) &lt; <span class="number">0</span>)</span><br><span class="line">            doAcquireShared(arg);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireSharedInterruptibly</span><span class="params">(<span class="keyword">long</span> arg)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (Thread.interrupted())</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">        <span class="keyword">if</span> (tryAcquireShared(arg) &lt; <span class="number">0</span>)</span><br><span class="line">            doAcquireSharedInterruptibly(arg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-2-2-2-shared-node入队操作"><a href="#2-2-2-2-shared-node入队操作" class="headerlink" title="2.2.2.2 shared node入队操作"></a>2.2.2.2 shared node入队操作</h4><p>和exelusive模式一样都有可中断和不可中断两个，如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireShared</span><span class="params">(<span class="keyword">long</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (tryAcquireShared(arg) &lt; <span class="number">0</span>)</span><br><span class="line">            doAcquireShared(arg);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">acquireSharedInterruptibly</span><span class="params">(<span class="keyword">long</span> arg)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (Thread.interrupted())</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> InterruptedException();</span><br><span class="line">        <span class="keyword">if</span> (tryAcquireShared(arg) &lt; <span class="number">0</span>)</span><br><span class="line">            doAcquireSharedInterruptibly(arg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>tryAcquireShared()需要使用AQS使用者继承实现，不过和tryAcquire不一样的是它返回一个整数，小于0表示尝试失败了。</p>
-<p><strong>1. acquireShared</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doAcquireShared</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> Node node = addWaiter(Node.SHARED);</span><br><span class="line">        <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                <span class="keyword">final</span> Node p = node.predecessor();</span><br><span class="line">                <span class="keyword">if</span> (p == head) &#123;</span><br><span class="line">                    <span class="keyword">int</span> r = tryAcquireShared(arg);</span><br><span class="line">                    <span class="keyword">if</span> (r &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                       <span class="comment">// 和exclusive模式下acquireQueued整体流程是一样的，</span></span><br><span class="line">                       <span class="comment">// 不同的是在这里，成功获取到竞争资源后，调用的这个方法。</span></span><br><span class="line">                        setHeadAndPropagate(node, r);</span><br><span class="line">                        p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                        <span class="keyword">if</span> (interrupted)</span><br><span class="line">                            selfInterrupt();</span><br><span class="line">                        failed = <span class="keyword">false</span>;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                    parkAndCheckInterrupt())</span><br><span class="line">                    interrupted = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (failed)</span><br><span class="line">                cancelAcquire(node);</span><br><span class="line">        &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>1. doAcquireShared</strong><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doAcquireShared</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> Node node = addWaiter(Node.SHARED);</span><br><span class="line">        <span class="keyword">boolean</span> failed = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                <span class="keyword">final</span> Node p = node.predecessor();</span><br><span class="line">                <span class="keyword">if</span> (p == head) &#123;</span><br><span class="line">                    <span class="keyword">int</span> r = tryAcquireShared(arg);</span><br><span class="line">                    <span class="keyword">if</span> (r &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                       <span class="comment">// 和exclusive模式下acquireQueued整体流程是一样的，</span></span><br><span class="line">                       <span class="comment">// 不同的是在这里，成功获取到竞争资源后，调用的这个方法。</span></span><br><span class="line">                        setHeadAndPropagate(node, r);</span><br><span class="line">                        p.next = <span class="keyword">null</span>; <span class="comment">// help GC</span></span><br><span class="line">                        <span class="keyword">if</span> (interrupted)</span><br><span class="line">                            selfInterrupt();</span><br><span class="line">                        failed = <span class="keyword">false</span>;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;</span><br><span class="line">                    parkAndCheckInterrupt())</span><br><span class="line">                    interrupted = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (failed)</span><br><span class="line">                cancelAcquire(node);</span><br><span class="line">        &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
 <p>关于上面setHeadAndPropagate做了什么，先通过下图描述一下为什么会有这个方法的调用吧.</p>
 <p>假设现在排队队列如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">-----     ------    -----     -----</span><br><span class="line">| E1 |  -&gt;| S1 | -&gt; | S2 | -&gt;| S3 |</span><br><span class="line">-----     ------    -----     ----</span><br></pre></td></tr></table></figure></p>
 <p>节点E1是头节点，exclusively持有资源， S1,  S2, S3都是在申请共享访问资源，然后因为E1已经持有了，所以都阻塞了。</p>
 <p>然后E1释放资源了，所以他会唤醒阻塞中的S1，S1拿到了资源，但是由于S1是共享模式去拿资源，S2，S3也都是去申请共享资源，所以S1应该去同样唤醒S2，S3一起去分享资源。 这也就是<code>setHeadAndPropagate</code>干的事情–唤醒S2, S2醒了唤醒S3。</p>
 <h3 id="2-2-3-出队操作"><a href="#2-2-3-出队操作" class="headerlink" title="2.2.3 出队操作"></a>2.2.3 出队操作</h3><p>也就是释放资源.</p>
 <h4 id="2-2-3-1-exclusive-node释放资源"><a href="#2-2-3-1-exclusive-node释放资源" class="headerlink" title="2.2.3.1 exclusive node释放资源"></a>2.2.3.1 exclusive node释放资源</h4><p>释放资源通过如下方法实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">release</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (tryRelease(arg)) &#123;</span><br><span class="line">            Node h = head;</span><br><span class="line">            <span class="keyword">if</span> (h != <span class="keyword">null</span> &amp;&amp; h.waitStatus != <span class="number">0</span>)</span><br><span class="line">                unparkSuccessor(h);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
-<p>tryRelease和tryAcquire一样，是需要继承并实现的，返回true表示资源完全被释放(也就是需要唤醒后面等待的node)，tryRelease同样需要结合资源状态state去判断，且应该是一个非阻塞的调用。</p>
-<p>下面unparkSuccessor唤醒后继等待者的实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">       </span><br><span class="line">        <span class="keyword">int</span> ws = node.waitStatus;</span><br><span class="line">        <span class="keyword">if</span> (ws &lt; <span class="number">0</span>)</span><br><span class="line">            compareAndSetWaitStatus(node, ws, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        Node s = node.next;</span><br><span class="line">        <span class="comment">// 后继节点==null并不能代表没有后继节点，原因跟入队addWaiter的实现有关.</span></span><br><span class="line">        <span class="comment">// 入队newNode时先用CAS将tail设置成newNode，然后再将之前的tail.next设置成newNode，</span></span><br><span class="line">        <span class="comment">// 所以这中间的时间间隔中有tail但是之前的tail还没有完成和newNode连接，也就是之前的tail的后继是null</span></span><br><span class="line">        <span class="comment">// 而s.waitStatus &gt;0 则这个值为CACELLED，应该再找它后面的节点</span></span><br><span class="line">        <span class="comment">// 所以最好的方式就是从tail往前遍历找到最前面的没有CANCELLED的节点，然后唤醒它。</span></span><br><span class="line">        <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            s = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</span><br><span class="line">                <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)</span><br><span class="line">                    s = t;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (s != <span class="keyword">null</span>)</span><br><span class="line">            <span class="comment">// 唤醒这个后继节点的线程。</span></span><br><span class="line">            LockSupport.unpark(s.thread);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>tryRelease和tryAcquire一样，是需要使用者继承并实现的，返回true表示资源完全被释放(也就是需要唤醒后面等待的node)，tryRelease同样需要结合资源状态state去判断，且应该是一个非阻塞的调用。</p>
+<p>下面unparkSuccessor唤醒后继等待者的实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">unparkSuccessor</span><span class="params">(Node node)</span> </span>&#123;</span><br><span class="line">       </span><br><span class="line">        <span class="keyword">int</span> ws = node.waitStatus;</span><br><span class="line">        <span class="keyword">if</span> (ws &lt; <span class="number">0</span>)</span><br><span class="line">            compareAndSetWaitStatus(node, ws, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        Node s = node.next;</span><br><span class="line">        <span class="comment">// 后继节点等于null并不能代表没有后继节点，原因跟入队addWaiter的实现有关.</span></span><br><span class="line">        <span class="comment">// 调用addWaiter入队newNode时先用CAS将tail设置成newNode，然后再将之前的tail.next设置成newNode，</span></span><br><span class="line">        <span class="comment">// 所以这中间的时间间隔中有tail但是之前的tail还没有完成和newNode连接，也就是之前的tail的后继是null</span></span><br><span class="line">        <span class="comment">// 而s.waitStatus &gt;0 则表示这个节点状态为CACELLED取消竞争资源，应该再找它后面的节点</span></span><br><span class="line">        <span class="comment">// for循环里从tail往前遍历找到最前面的没有CANCELLED的节点，然后唤醒它。</span></span><br><span class="line">        <span class="keyword">if</span> (s == <span class="keyword">null</span> || s.waitStatus &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            s = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">for</span> (Node t = tail; t != <span class="keyword">null</span> &amp;&amp; t != node; t = t.prev)</span><br><span class="line">                <span class="keyword">if</span> (t.waitStatus &lt;= <span class="number">0</span>)</span><br><span class="line">                    s = t;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (s != <span class="keyword">null</span>)</span><br><span class="line">            <span class="comment">// 唤醒找到的节点对应的线程。</span></span><br><span class="line">            LockSupport.unpark(s.thread);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
 <h4 id="2-2-3-2-shared-node释放资源"><a href="#2-2-3-2-shared-node释放资源" class="headerlink" title="2.2.3.2 shared node释放资源"></a>2.2.3.2 shared node释放资源</h4><p>调用如下方法：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">releaseShared</span><span class="params">(<span class="keyword">int</span> arg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (tryReleaseShared(arg)) &#123;</span><br><span class="line">            doReleaseShared();</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
 <p>tryReleaseShared需要使用AQS的继承并实现它，返回true表示成功释放，意味着需要唤醒后续等待者。</p>
-<p>关于doReleaseShared就是唤醒后继节点，没什么好讲述的～～～</p>
+<p>关于doReleaseShared就是唤醒后继所有等待的节点，被唤醒的节点又会在前面介绍的各种doAcquireXXX中醒来去尝试获取资源，获取不到的又会等待。</p>
 
           
         
@@ -1192,7 +1564,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2017/10/22/SpringMVC工作机制/" itemprop="url">spring mvc工作机制</a></h1>
+                <a class="post-title-link" href="/2017/10/22/SpringMVC工作机制/" itemprop="url">SpringMVC工作机制</a></h1>
         
 
         <div class="post-meta">
@@ -1469,366 +1841,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/17/Spring生命周期管理/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Li Weisheng">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/10/17/Spring生命周期管理/" itemprop="url">spring生命周期管理</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-17T21:22:45+08:00">
-                2017-10-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h2><p>本文主要记录一下Spring中bean的生命周期，即从bean实例化到最终销毁的过程中一些重要的节点，以及Spring提供的在bean这些节点过程中的一些操作。</p>
-<h2 id="2-Bean生命周期"><a href="#2-Bean生命周期" class="headerlink" title="2. Bean生命周期"></a>2. Bean生命周期</h2><p>如下图所示:</p>
-<p><img src="/image/spring/spring-lifecycle.png" alt="Spring生命周期.png"></p>
-<h3 id="2-1-BeanFactoryPostProcessor"><a href="#2-1-BeanFactoryPostProcessor" class="headerlink" title="2.1  BeanFactoryPostProcessor"></a>2.1  BeanFactoryPostProcessor</h3><p>该接口有如下方法:<br>   <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">postProcessBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> <span class="keyword">throws</span> BeansException</span>;</span><br></pre></td></tr></table></figure></p>
-<p>   该接口的实现类最先被实例化，它是一个spring容器级别的后置处理器，尽管此时所有的bean都没有被实例化出来，但是bean的配置文件已经被分析完，所有的bean的定义信息(spring中使用类BeanDefinition表示)已经加载，可以通过<code>ConfigurableListableBeanFactory  # getBeanDefinition(String beanName)</code>获取，获取到BeanDefiniton意味着你可以修改bean的属性了。</p>
-<p><strong>BeanFactoryPostProcessor 的一些实现类</strong></p>
-<ol>
-<li><p>PropertyPlaceholderConfigurer<br>这个很多人用过，从key=value形式的配置文件中加载配置信息，并通过${propertyName}的形式设置到bean属性上，如下面这种形式:</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">context:property-placeholder</span></span></span><br><span class="line"><span class="tag">         <span class="attr">location</span>=<span class="string">"classpath:db.properties"</span></span></span><br><span class="line"><span class="tag">          <span class="attr">file-encoding</span>=<span class="string">"utf8"</span></span></span><br><span class="line"><span class="tag">/&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"dataSource"</span> <span class="attr">class</span>=<span class="string">"org.springframework.jdbc.datasource.DriverManagerDataSource"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"driverClassName"</span> <span class="attr">value</span>=<span class="string">"$&#123;db.driver&#125;"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"url"</span> <span class="attr">value</span>=<span class="string">"$&#123;db.url&#125;"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"username"</span> <span class="attr">value</span>=<span class="string">"$&#123;db.user&#125;"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"password"</span> <span class="attr">value</span>=<span class="string">"$&#123;db.password&#125;"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<p><strong>注：</strong>上面使用了简易的形式<context:property-placeholder ...="">, 这种情况下会创建<code>PropertyPlaceholderConfigurer</code>对应的bean。关于<context>命名空间，请看 <strong>附录1</strong></context></context:property-placeholder></p>
-</li>
-<li><p>PropertyOverrideConfigurer<br>这个和 <code>PropertyPlaceholderConfigurer</code>一样将bean的属性卸载properties文件中，用法如下:</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">首先假设在db.properties中如下内容:</span><br><span class="line">dataSource.username=root</span><br><span class="line">dataSource.password=root</span><br><span class="line">同样是name=value的形式，但是name必须是<span class="tag">&lt;<span class="name">beanName</span>&gt;</span>.<span class="tag">&lt;<span class="name">beanPropertyName</span>&gt;</span>格式</span><br><span class="line"></span><br><span class="line">然后在applicationContext.xml中如下定义bean即可:</span><br><span class="line"> <span class="comment">&lt;!--这个命名空间会加载PropertyOverrideConfigurer--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">context:property-override</span> <span class="attr">location</span>=<span class="string">"db.properties"</span>/&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">&lt;!--bean id需要和db.properties中beanName一样--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"dataSource"</span> <span class="attr">class</span>=<span class="string">"org.springframework.jdbc.datasource.DriverManagerDataSource"</span>&gt;</span>   </span><br><span class="line"><span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br><span class="line">PropertyOverrideConfigurer这个后置处理器会根据db.properties中dataSource这个bean的名字找到属性，然后填充到dataSource这个bean中</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<h3 id="2-2-BeanPostProcessor"><a href="#2-2-BeanPostProcessor" class="headerlink" title="2.2 BeanPostProcessor"></a>2.2 BeanPostProcessor</h3><p>BeanPostProcessor有两个接口方法:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">Object <span class="title">postProcessBeforeInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"><span class="function">Object <span class="title">postProcessAfterInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException</span>;</span><br></pre></td></tr></table></figure></p>
-<p>BeanPostProcessor在普通bean实例化之前就就创建了，但是他的两个接口方法在却在普通bean实例化(即创建bean类的对象)，通过setter完成了属性注入之后调用，这两个方法在bean初始化前后调用(bean初始化是指调用xml中bean定义中init-method指定的方法，或者bean实现了InitializingBean接口，调用接口方法)，详细的可见上图。</p>
-<p><strong>BeanPostProcessor的一些实现类</strong></p>
-<ol>
-<li>AutowiredAnnotationBeanPostProcessor<br>用于使用<code>@Autowired</code>和<code>@Value</code>注解的解析</li>
-<li>RequiredAnnotationBeanPostProcessor<br>用于使用<code>@Require</code>注解的解析</li>
-<li><p>CommonAnnotationBeanPostProcessor<br>用于使用<code>@Resource</code>, <code>@PostConstruct</code>,<code>@PreDestroy</code>注解的解析。</p>
-<blockquote>
-<p>上面三类在在基于注解的方式装配bean时经常使用，当在xml文件里配置<code>&lt;context:annotation-config /&gt;</code>时，spring会创建上面三类PostProcessor，同样属于context空间，参考 <strong>附录1</strong></p>
-</blockquote>
-</li>
-<li>ScheduledAnnotationBeanPostProcessor<br>用于使用了<code>@Scheduled</code>注解的方法的解析，在xml中添加<code>&lt;task:annotation-driven&gt;</code>时会创建这个PostProcessor, 如下例所示:<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">  <span class="tag">&lt;<span class="name">beans</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">task:annotation-driven</span> <span class="attr">scheduler</span>=<span class="string">"taskScheduler"</span>/&gt;</span></span><br><span class="line">    </span><br><span class="line">    <span class="tag">&lt;<span class="name">task:scheduler</span> <span class="attr">id</span>=<span class="string">"taskScheduler"</span> <span class="attr">pool-size</span>=<span class="string">"42"</span>/&gt;</span></span><br><span class="line">    </span><br><span class="line">    <span class="tag">&lt;<span class="name">task:scheduled-tasks</span> <span class="attr">scheduler</span>=<span class="string">"taskScheduler"</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">task:scheduled</span> <span class="attr">ref</span>=<span class="string">"myTask"</span> <span class="attr">method</span>=<span class="string">"work"</span> <span class="attr">fixed-rate</span>=<span class="string">"1000"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">task:scheduled-tasks</span>&gt;</span></span><br><span class="line">    </span><br><span class="line">    <span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"myTask"</span> <span class="attr">class</span>=<span class="string">"com.foo.MyTask"</span>/&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">beans</span>&gt;</span></span><br><span class="line">这个例子来自于spring代码@EnableScheduling注释</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<h3 id="2-3-ApplicationContextAware"><a href="#2-3-ApplicationContextAware" class="headerlink" title="2.3 ApplicationContextAware"></a>2.3 ApplicationContextAware</h3><p>它只有一个接口方法<code>setApplicationContext(ApplicationContext apc)</code>,  实现它的bean而言，apc即该bean运行时所处的applicationContext，上图没有画出它的调用时机，它在<code>BeanFactoryAware # setBeanFactory</code>之后调用。</p>
-<h2 id="附录1-context命名空间"><a href="#附录1-context命名空间" class="headerlink" title="附录1 - context命名空间"></a>附录1 - context命名空间</h2><p>在<code>spring-context</code>的jar包中META-INF目录下有文件‘spring.handlers’中有这样一行<code>http\://www.springframework.org/schema/context=org.springframework.context.config.ContextNamespaceHandler</code>, context命名空间加载了类<code>ContextNamespaceHandler</code>，下面是这个类的init方法:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"property-placeholder"</span>, <span class="keyword">new</span> PropertyPlaceholderBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"property-override"</span>, <span class="keyword">new</span> PropertyOverrideBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"annotation-config"</span>, <span class="keyword">new</span> AnnotationConfigBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"component-scan"</span>, <span class="keyword">new</span> ComponentScanBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"load-time-weaver"</span>, <span class="keyword">new</span> LoadTimeWeaverBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"spring-configured"</span>, <span class="keyword">new</span> SpringConfiguredBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"mbean-export"</span>, <span class="keyword">new</span> MBeanExportBeanDefinitionParser());</span><br><span class="line">		registerBeanDefinitionParser(<span class="string">"mbean-server"</span>, <span class="keyword">new</span> MBeanServerBeanDefinitionParser());</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
-<p>包含了context这个命名空间下所有子元素对应的Parser, 这写parser负责解析xml元素，然后创建对应BeanDefinition</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/09/Spark-Streaming-3-Receiver和ReceiverTacker/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Li Weisheng">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/05/09/Spark-Streaming-3-Receiver和ReceiverTacker/" itemprop="url">Spark Streaming(3) - Receiver和ReceiverTacker</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-09T23:15:07+08:00">
-                2017-05-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><em>本文基于spark 2.11</em></p>
-<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>在Spark Streaming(1)中介绍spark streaming工作流程中时，大致介绍了streaming job在运行时从stream中读取数据的流程：</p>
-<ol>
-<li>Receiver运行在executor上接收数据，将数据转交给ReceiverSupervisor，然后ReceiverSupervisor利用blockmanager存储好数据，并将数据块信息汇报给ReceiverTracker。</li>
-<li>ReceiverTracker运行在Driver上，接收数据块信息保存，后续在JobGenerator生成新jobs时分配数据作为新jobs的数据源。</li>
-</ol>
-<p>本文将详细介绍上述流程。</p>
-<h1 id="2-ReceiverTracker"><a href="#2-ReceiverTracker" class="headerlink" title="2 ReceiverTracker"></a>2 ReceiverTracker</h1><p>ReceiverTracker有以下核心成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">private val receiverInputStreams = ssc.graph.getReceiverInputStreams()</span><br><span class="line">private val receiverInputStreamIds = receiverInputStreams.map &#123; _.id &#125;</span><br><span class="line">private val receivedBlockTracker = ...</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>receiverInputStreams,DStreamGraph保存的所有DStream Graph所有的实现了ReceiverInputDStream类DStream，意味着这些DStream持有receiver，能够发送在executor启动执行接收流数据的任务。</li>
-<li>每一个receiver都有一个id，receiver汇报自己的数据时一并汇报自己的id，DStream DAG源头的ReceiverInputDStream使用receiverTracker获取属于数据时就根据自己的id知道应该取哪些数据。</li>
-<li>receivedBlockTracker，后面会讲。</li>
-</ol>
-<h2 id="2-1-ReceiverTracker的启动"><a href="#2-1-ReceiverTracker的启动" class="headerlink" title="2.1 ReceiverTracker的启动"></a>2.1 ReceiverTracker的启动</h2><p>先在Driver端启动ReceiverTracker，是在JobScheduler启动时完成，有如下调用序列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">StreamingContext#start</span><br><span class="line">   -&gt;JobScheduler#start</span><br><span class="line">      -&gt;ReceiverTracker#start</span><br></pre></td></tr></table></figure></p>
-<p>下面则是ReceiverTracker的方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">def start(): Unit = synchronized &#123;</span><br><span class="line">    if (isTrackerStarted) &#123;</span><br><span class="line">      throw new SparkException(&quot;ReceiverTracker already started&quot;)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (!receiverInputStreams.isEmpty) &#123;</span><br><span class="line">      endpoint = ssc.env.rpcEnv.setupEndpoint(</span><br><span class="line">        &quot;ReceiverTracker&quot;, new ReceiverTrackerEndpoint(ssc.env.rpcEnv))</span><br><span class="line">      if (!skipReceiverLaunch) launchReceivers()</span><br><span class="line">      logInfo(&quot;ReceiverTracker started&quot;)</span><br><span class="line">      trackerState = Started</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<p>可以看到start代码中在rpcEnv上注册了一个Rpc服务（关于spark 的Rcp原理可以参考<a href="http://www.jianshu.com/p/7da49e332e70" target="_blank" rel="noopener">spark网络通信-RPC的实现</a>）</p>
-<p>可以看看它注册的receiverTrackerEndpoint的receive和receiveAdnreply方法看看它就收什么消息，提供什么服务：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">override def receive: PartialFunction[Any, Unit] = &#123;</span><br><span class="line">      // Local messages</span><br><span class="line">      case StartAllReceivers(receivers) =&gt;</span><br><span class="line">          ...</span><br><span class="line">          //这个消息是自己发给自己的，在executor上启动receiver</span><br><span class="line">          startReceiver(receiver, executors)</span><br><span class="line">        &#125;</span><br><span class="line">      case RestartReceiver(receiver) =&gt;</span><br><span class="line">        ...</span><br><span class="line">        startReceiver(receiver, scheduledLocations)</span><br><span class="line">      case c: CleanupOldBlocks =&gt;</span><br><span class="line">        // 处理过了batch数据可以清除了</span><br><span class="line">        ...</span><br><span class="line">      case ReportError(streamId, message, error) =&gt;</span><br><span class="line">        reportError(streamId, message, error)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = &#123;</span><br><span class="line">      // Remote messages</span><br><span class="line">      case RegisterReceiver(streamId, typ, host, executorId, receiverEndpoint) =&gt;</span><br><span class="line">         ...</span><br><span class="line">        // receiver在executor上启动之后会将自己注册到ReceiverTracker上，好让它感知到</span><br><span class="line">      case DeregisterReceiver(streamId, message, error) =&gt;</span><br><span class="line">        deregisterReceiver(streamId, message, error)</span><br><span class="line">        context.reply(true)</span><br><span class="line"></span><br><span class="line">      // Local messages</span><br><span class="line">     case AddBlock(receivedBlockInfo) =&gt;</span><br><span class="line">      // 接收receiver上报的数据信息</span><br><span class="line">     ...</span><br><span class="line">      case AllReceiverIds =&gt;</span><br><span class="line">        context.reply(receiverTrackingInfos.filter(_._2.state != ReceiverState.INACTIVE).keys.toSeq)</span><br><span class="line">      case GetAllReceiverInfo =&gt;</span><br><span class="line">        context.reply(receiverTrackingInfos.toMap)</span><br><span class="line">      case StopAllReceivers =&gt;</span><br><span class="line">        assert(isTrackerStopping || isTrackerStopped)</span><br><span class="line">        stopReceivers()</span><br><span class="line">        context.reply(true)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
-<p>从上面可以它提供的服务包括注册启动receivers，注册和销毁数据等。</p>
-<p>在回到start方法中调用<code>launchReceivers()</code>启动receiver。</p>
-<h2 id="2-2-ReceiverTracker-处理receiver汇报的数据"><a href="#2-2-ReceiverTracker-处理receiver汇报的数据" class="headerlink" title="2.2 ReceiverTracker 处理receiver汇报的数据"></a>2.2 ReceiverTracker 处理receiver汇报的数据</h2><p>ReceiverTracker的rpc服务接收到AddBlock()消息表示接收到receiver汇报的数据信息。</p>
-<p>先看看AddBlock消息的结构：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">// AddBlock消息包含了ReceiverdBlockInfo,这里存储了receiver上报的数据具体信息</span><br><span class="line">private[streaming] case class AddBlock(receivedBlockInfo: ReceivedBlockInfo)</span><br><span class="line"></span><br><span class="line">// 上报了streamId，numRecords表示本次batch中记录数,</span><br><span class="line">// blockStoreResult  有两个实现类：</span><br><span class="line">//.       1. BlockManagerBasedStoreResult，receiver端使用blockmanager管理batch数据</span><br><span class="line">//        2. WriteAheadLogBasedStoreResult, receiver端使用了WAL保存了batch数据</span><br><span class="line">//.     关于这两种方式会在Receiver端时解释</span><br><span class="line">private[streaming] case class ReceivedBlockInfo(</span><br><span class="line">    streamId: Int,</span><br><span class="line">    numRecords: Option[Long],</span><br><span class="line">    metadataOption: Option[Any],</span><br><span class="line">    blockStoreResult: ReceivedBlockStoreResult</span><br><span class="line">  ) &#123;...&#125;</span><br></pre></td></tr></table></figure></p>
-<p>再回到到rpc服务接收到AddBlock的处理，进入如下调用序列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">case AddBlock =&gt;. 接收到AddBlock消息</span><br><span class="line">    -&gt; ReceiverTracker#addBlock</span><br><span class="line">     -&gt; ReceivedBlockTracker#addBlock 使用receivedBlockTracker来管理上报的数据</span><br></pre></td></tr></table></figure></p>
-<p><strong>ReceiveBlockTracker</strong><br>接收到的消息最终时通过ReceivedBlockTracker来管理的，下面两个成员涉及到ReceivedBlockTracker管理上报的数据信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">private type ReceivedBlockQueue = mutable.Queue[ReceivedBlockInfo]</span><br><span class="line"></span><br><span class="line">  private val streamIdToUnallocatedBlockQueues = new mutable.HashMap[Int, ReceivedBlockQueue]</span><br><span class="line">  private val timeToAllocatedBlocks = new mutable.HashMap[Time, AllocatedBlocks]</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>ReceivedBlockQueue，定义这个类型，后边的所有数据信息是保存在队列里的</li>
-<li>streamIdToUnallocatedBlockQueues，首先上报的数据是安streamId区分开来的，这个队列保存上报上来的，但是还还没有分配给某个job的的数据。</li>
-<li>timeToAllocatedBlocks，JobGenerator生成job时请求receiverTracker分配数据给job，receiverTracker调用ReceiveBlockTracker分配数据，数据时间（job生成时间），streamId索引到，job对应的RDD DAG就能根据时间和streamId从这里去数据。</li>
-</ol>
-<p>到这里ReceiveBlockTracker的addBlock的工作就清楚了将上报的数据保存到streamIdToUnallocatedBlockQueues就行了。</p>
-<h2 id="2-3-ReceiverTracker-为job分配数据"><a href="#2-3-ReceiverTracker-为job分配数据" class="headerlink" title="2.3 ReceiverTracker 为job分配数据"></a>2.3 ReceiverTracker 为job分配数据</h2><p><a href="http://www.jianshu.com/p/8a28a711400a" target="_blank" rel="noopener">Spark Streaming(2)</a>中第3节介绍JobGenerator生成job是方法generateJobs调用了<code>receiverTracker.allocateBlocksToBatch</code>为job分配输入数据，分配数据的工作同样委派给ReceiveBlockTracker，下面是其allocateBlocksToBatch方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def allocateBlocksToBatch(batchTime: Time): Unit = synchronized &#123;</span><br><span class="line">    if (lastAllocatedBatchTime == null || batchTime &gt; lastAllocatedBatchTime) &#123;</span><br><span class="line">     // 将streamIdToUnallocatedBlockQueues中的数据全部取出来按照streamId区分</span><br><span class="line">      val streamIdToBlocks = streamIds.map &#123; streamId =&gt;</span><br><span class="line">          (streamId, getReceivedBlockQueue(streamId).dequeueAll(x =&gt; true))</span><br><span class="line">      &#125;.toMap</span><br><span class="line">      val allocatedBlocks = AllocatedBlocks(streamIdToBlocks)</span><br><span class="line">      if (writeToLog(BatchAllocationEvent(batchTime, allocatedBlocks))) &#123;</span><br><span class="line">      // 保存到timeToAllocatedBlocks，job里处于输入源的DStream根据自己的时间的streamId取数据转换成BlockRDD。</span><br><span class="line">        timeToAllocatedBlocks.put(batchTime, allocatedBlocks)</span><br><span class="line">        lastAllocatedBatchTime = batchTime</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        logInfo(s&quot;Possibly processed batch $batchTime needs to be processed again in WAL recovery&quot;)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">   </span><br><span class="line">      logInfo(s&quot;Possibly processed batch $batchTime needs to be processed again in WAL recovery&quot;)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<h1 id="3-Receiver和ReceiverSupervisor"><a href="#3-Receiver和ReceiverSupervisor" class="headerlink" title="3. Receiver和ReceiverSupervisor"></a>3. Receiver和ReceiverSupervisor</h1><p>2.1中提到ReceiverTracker的start方法调用launchReceivers启动receiver, 在receiver启动之前的调用是这样的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ReceiverTracker#start</span><br><span class="line">   -&gt;ReceiverTracker#launchReceivers</span><br><span class="line">         -&gt; ReceiverTrackerEndpoint#send(StartAllReceivers(receivers))</span><br><span class="line">                                               | 给rpc服务发送StartAllReceivers消息</span><br><span class="line">                                               v</span><br><span class="line">    rpc服务收到消息    ReceiverTrackerEndpoint#receive </span><br><span class="line">                      -&gt;ReceiverTracker#startReceiver  在executor上启动receiver</span><br></pre></td></tr></table></figure></p>
-<p><strong>receiver的获取</strong><br>spark streaming(1) 的2.2节提到ReceiverInputDStream需要返回一个receiver。<br><strong>启动receiver</strong></p>
-<ol>
-<li>launchReceivers 从ReceiverTracker#receiverInputStreams成员中最终获取到所有receivers，</li>
-<li>给自己持有的rpc发送StartAllReceivers消息</li>
-<li>接收到消息的rpc服务调用ReceiverTracker#startReceiver</li>
-</ol>
-<p>核心在startReceiver，下面代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line">private def startReceiver(</span><br><span class="line">       receiver: Receiver[_],</span><br><span class="line">       scheduledLocations: Seq[TaskLocation]): Unit = &#123;</span><br><span class="line">     def shouldStartReceiver: Boolean = &#123;</span><br><span class="line">       // It&apos;s okay to start when trackerState is Initialized or Started</span><br><span class="line">       !(isTrackerStopping || isTrackerStopped)</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     val receiverId = receiver.streamId</span><br><span class="line">     if (!shouldStartReceiver) &#123;</span><br><span class="line">       onReceiverJobFinish(receiverId)</span><br><span class="line">       return</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line">     val checkpointDirOption = Option(ssc.checkpointDir)</span><br><span class="line">     val serializableHadoopConf =</span><br><span class="line">       new SerializableConfiguration(ssc.sparkContext.hadoopConfiguration)</span><br><span class="line"></span><br><span class="line">     // 这个函数会在receiver相关信息发送到executor上执行</span><br><span class="line">     val startReceiverFunc: Iterator[Receiver[_]] =&gt; Unit =</span><br><span class="line">       (iterator: Iterator[Receiver[_]]) =&gt; &#123;</span><br><span class="line">         if (!iterator.hasNext) &#123;</span><br><span class="line">           throw new SparkException(</span><br><span class="line">             &quot;Could not start receiver as object not found.&quot;)</span><br><span class="line">         &#125;</span><br><span class="line">         if (TaskContext.get().attemptNumber() == 0) &#123;</span><br><span class="line">           val receiver = iterator.next()</span><br><span class="line">           assert(iterator.hasNext == false)</span><br><span class="line">           // 启动receiverSupervisor</span><br><span class="line">           val supervisor = new ReceiverSupervisorImpl(</span><br><span class="line">             receiver, SparkEnv.get, serializableHadoopConf.value, checkpointDirOption)</span><br><span class="line">           supervisor.start()</span><br><span class="line">           supervisor.awaitTermination()</span><br><span class="line">         &#125; else &#123;</span><br><span class="line">           // It&apos;s restarted by TaskScheduler, but we want to reschedule it again. So exit it.</span><br><span class="line">         &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">     // 创建了RDD，RDD的数据就是receivers组成的，结合上面的函数startReceiverFunc运行在RDD的数据上，也就是接收receiver作为参数运行</span><br><span class="line">    </span><br><span class="line">     val receiverRDD: RDD[Receiver[_]] =</span><br><span class="line">       if (scheduledLocations.isEmpty) &#123;</span><br><span class="line">         ssc.sc.makeRDD(Seq(receiver), 1)</span><br><span class="line">       &#125; else &#123;</span><br><span class="line">         val preferredLocations = scheduledLocations.map(_.toString).distinct</span><br><span class="line">         ssc.sc.makeRDD(Seq(receiver -&gt; preferredLocations))</span><br><span class="line">       &#125;</span><br><span class="line">     receiverRDD.setName(s&quot;Receiver $receiverId&quot;)</span><br><span class="line">     ssc.sparkContext.setJobDescription(s&quot;Streaming job running receiver $receiverId&quot;)</span><br><span class="line">     ssc.sparkContext.setCallSite(Option(ssc.getStartSite()).getOrElse(Utils.getCallSite()))</span><br><span class="line"></span><br><span class="line">    // RDD生成job提交运行</span><br><span class="line">     val future = ssc.sparkContext.submitJob[Receiver[_], Unit, Unit](</span><br><span class="line">       receiverRDD, startReceiverFunc, Seq(0), (_, _) =&gt; Unit, ())</span><br><span class="line">     // We will keep restarting the receiver job until ReceiverTracker is stopped</span><br><span class="line">     future.onComplete &#123;</span><br><span class="line">       case Success(_) =&gt;</span><br><span class="line">         if (!shouldStartReceiver) &#123;</span><br><span class="line">           onReceiverJobFinish(receiverId)</span><br><span class="line">         &#125; else &#123;</span><br><span class="line">           logInfo(s&quot;Restarting Receiver $receiverId&quot;)</span><br><span class="line">           self.send(RestartReceiver(receiver))</span><br><span class="line">         &#125;</span><br><span class="line">       case Failure(e) =&gt;</span><br><span class="line">         if (!shouldStartReceiver) &#123;</span><br><span class="line">           onReceiverJobFinish(receiverId)</span><br><span class="line">         &#125; else &#123;</span><br><span class="line">           logError(&quot;Receiver has been stopped. Try to restart it.&quot;, e)</span><br><span class="line">           logInfo(s&quot;Restarting Receiver $receiverId&quot;)</span><br><span class="line">           self.send(RestartReceiver(receiver))</span><br><span class="line">         &#125;</span><br><span class="line">     &#125;(ThreadUtils.sameThread)</span><br><span class="line">     logInfo(s&quot;Receiver $&#123;receiver.streamId&#125; started&quot;)</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>根据spark job提交一文介绍，最终startReceiverFunc函数会被包装成ResultTask运行在executor上，而ResultTask会调用startReceiverFunc完成receiverSupervisor的创建。</p>
-<h3 id="3-1-Receiver"><a href="#3-1-Receiver" class="headerlink" title="3.1 Receiver"></a>3.1 Receiver</h3><p>上 面代码Receiver的启动序列是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ReceiverSupervisor#start</span><br><span class="line">   -&gt; ReceiverSupervisor#startReceiver</span><br><span class="line">      -&gt; Receiver#onStart</span><br></pre></td></tr></table></figure></p>
-<p>Receiver主要有如下成员和方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">@transient private var _supervisor: ReceiverSupervisor = null</span><br><span class="line">def storeXXX()</span><br><span class="line">def onStart()</span><br><span class="line">def streamId: Int = id</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>_supervisor,  Receiver需要将自己接受到的数据转给ReceiverSupervisor</li>
-<li>storeXXX,是一系列的方法， 存储数据，内部就是调用ReceiverSupervisor的方法从而将数据转给他存储并汇报给ReceiverTracker。</li>
-<li>onStart，receiver启动是调用，一般在这里从流中读数据</li>
-<li>streamId， 每一个输入流唯一的id标识</li>
-</ol>
-<p>以SocketReceiver为例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line">private[streaming]</span><br><span class="line">class SocketReceiver[T: ClassTag](</span><br><span class="line">    host: String,</span><br><span class="line">    port: Int,</span><br><span class="line">    bytesToObjects: InputStream =&gt; Iterator[T],</span><br><span class="line">    storageLevel: StorageLevel</span><br><span class="line">  ) extends Receiver[T](storageLevel) with Logging &#123;</span><br><span class="line"></span><br><span class="line">  private var socket: Socket = _</span><br><span class="line"></span><br><span class="line">  def onStart() &#123;</span><br><span class="line"></span><br><span class="line">    logInfo(s&quot;Connecting to $host:$port&quot;)</span><br><span class="line">    try &#123;</span><br><span class="line">      socket = new Socket(host, port)</span><br><span class="line">    &#125; catch &#123;</span><br><span class="line">      case e: ConnectException =&gt;</span><br><span class="line">        restart(s&quot;Error connecting to $host:$port&quot;, e)</span><br><span class="line">        return</span><br><span class="line">    &#125;</span><br><span class="line">    logInfo(s&quot;Connected to $host:$port&quot;)</span><br><span class="line"></span><br><span class="line">    // Start the thread that receives data over a connection</span><br><span class="line">    new Thread(&quot;Socket Receiver&quot;) &#123;</span><br><span class="line">      setDaemon(true)</span><br><span class="line">      override def run() &#123; receive() &#125;</span><br><span class="line">    &#125;.start()</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  def onStop() &#123;</span><br><span class="line">    // in case restart thread close it twice</span><br><span class="line">    synchronized &#123;</span><br><span class="line">      if (socket != null) &#123;</span><br><span class="line">        socket.close()</span><br><span class="line">        socket = null</span><br><span class="line">        logInfo(s&quot;Closed socket to $host:$port&quot;)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  /** Create a socket connection and receive data until receiver is stopped */</span><br><span class="line">  def receive() &#123;</span><br><span class="line">    try &#123;</span><br><span class="line">      val iterator = bytesToObjects(socket.getInputStream())</span><br><span class="line">      while(!isStopped &amp;&amp; iterator.hasNext) &#123;</span><br><span class="line">        store(iterator.next())</span><br><span class="line">      &#125;</span><br><span class="line">      if (!isStopped()) &#123;</span><br><span class="line">        restart(&quot;Socket data stream had no more data&quot;)</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        logInfo(&quot;Stopped receiving&quot;)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; catch &#123;</span><br><span class="line">      case NonFatal(e) =&gt;</span><br><span class="line">        logWarning(&quot;Error receiving data&quot;, e)</span><br><span class="line">        restart(&quot;Error receiving data&quot;, e)</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">      onStop()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>onStart方法启动了后台线程调用receive()接收数据</li>
-<li>receive方法调用store方法存入一条数据记录。<br>下面是store方法：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">def store(dataItem: T) &#123;</span><br><span class="line">  // 数据交给了ReceiverSupervisor</span><br><span class="line">   supervisor.pushSingle(dataItem)</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<h3 id="3-2-ReceiverSupervisor"><a href="#3-2-ReceiverSupervisor" class="headerlink" title="3.2 ReceiverSupervisor"></a>3.2 ReceiverSupervisor</h3><p>ReceiverSupervisor只有一个实现类ReceiverSupervisorImpl，它运行在executor上，启动时会一同启动Receiver。并将接收到的数据存储起来，然后将数据信息汇报到ReceiverTracker，下面是其主要的方法和属性：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">private val receivedBlockHandler: ReceivedBlockHandler</span><br><span class="line">private val trackerEndpoint </span><br><span class="line">private val endpoint </span><br><span class="line">private val registeredBlockGenerators = new ConcurrentLinkedQueue[BlockGenerator]()</span><br><span class="line">private val  defaultBlockGeneratorListener</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li><p>receivedBlockHandler<br>主要有两种实现：</p>
-<ul>
-<li>WriteAheadLogBasedBlockHandler， 对于receiver转过来的数据，使用WAL的方式保存，当出错重启时可以从中恢复，确保可靠性。</li>
-<li>BlockManagerBasedBlockHandler，使用blockmanager来管理数据。</li>
-</ul>
-<p>WAL的方式的好处是数据写在hdfs中，当driver application意外退出是，数据也不会丢失，使用blockmanager的话如果driver application失败了，或者executor所在node没了，都有可能导致数据丢失。<br>通过<code>spark.streaming.receiver.writeAheadLog.enable</code>设置使用WAL的方式，使用WAL方式时，数据同时也会使用blockmanager管理。</p>
-</li>
-<li><p>trackerEndpoint，是由ReceiverTracker 的rpc服务的引用，用来和ReceiverTracker通信（Spark Rpc原理参考<a href="http://www.jianshu.com/p/7da49e332e70" target="_blank" rel="noopener">spark rpc原理</a>）</p>
-</li>
-<li>endpoint，ReceiverSupervisor自身提供的一些rpc服务，接收的消息主要有：<ul>
-<li>StopReceiver， 停止Receiver，ReceiverSupervisor</li>
-<li>对receivedBlockHandler保存下来的数据做一些清除工作</li>
-</ul>
-</li>
-<li><p>registeredBlockGenerators<br>有时候receiver每次只上报一条数据，显然为一条数据创建一个block id取管理是低效的，registeredBlockGenerators就是用来汇集那些一条条上报的数据，达到一定大小后交给ReceiverSupervisor去保存成一个block</p>
-</li>
-<li><p>defaultBlockGeneratorListener，这个listener下面讲BlockGenerator会讲到，BlockGenerator讲汇集好的block再转交给ReceiverSupervisor时就是用这个listener会调完成的。</p>
-</li>
-</ol>
-<h4 id="3-2-1-BlockGenerator"><a href="#3-2-1-BlockGenerator" class="headerlink" title="3.2.1 BlockGenerator"></a>3.2.1 BlockGenerator</h4><p>上面4中，ReceiverSupervisor启动时会默认注册一个defaultBlockGenerator，其类就是BlockGenerator。<br>这个类有如下一些成员：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">private[streaming] class BlockGenerator(</span><br><span class="line">      listener: BlockGeneratorListener,</span><br><span class="line">      receiverId: Int,</span><br><span class="line">      conf: SparkConf,</span><br><span class="line">      clock: Clock = new SystemClock()</span><br><span class="line">    ) extends RateLimiter(conf) with Logging &#123;</span><br><span class="line">...</span><br><span class="line">private val blockIntervalTimer =</span><br><span class="line">    new RecurringTimer(clock, blockIntervalMs, updateCurrentBuffer, &quot;BlockGenerator&quot;)</span><br><span class="line"> </span><br><span class="line">  private val blocksForPushing = new ArrayBlockingQueue[Block](blockQueueSize)</span><br><span class="line">  private val blockPushingThread = new Thread() &#123; override def run() &#123; keepPushingBlocks() &#125; &#125;</span><br><span class="line">  @volatile private var currentBuffer = new ArrayBuffer[Any]</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
-<ol>
-<li>listener, 创建时由ReceiverSupervisor传递的，也就是上面5中的defaultBlockGeneratorListener </li>
-<li>blockIntervalTimer,前面说blockGenerator用来将一条条转过来的数据汇集成一个个block，这个定时器每隔一段时间(blockIntervalMs)汇集一次数据</li>
-<li>blocksForPushing，数据被汇集成block后，先暂存在这里，等待转交给ReceiverSupervisor保存并汇报</li>
-<li>blockPushingThread，线程不停的讲blocksForPushing中的block转交给ReceiverSupervisor</li>
-<li>currentBuffer,receiver发过来的一条条数据先暂时存在这里，等待blockIntervalTimer汇集一起成block。</li>
-</ol>
-<p>下图描述了数据从receiver到ReceiverTracker的流程</p>
-<p><img src="/image/spark-streaming/spark-streaming-procedure.png" alt="数据流转过程"></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1874,7 +1891,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-count">33</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1887,7 +1904,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">标签</span>
                 
               </div>

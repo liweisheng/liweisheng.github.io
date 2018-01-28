@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文基于Spark 2.11 1. 前言Spark Streaming(1)中提到JobScheduler使用JobGenerator可以每隔一段时间根据DStream DAG创建出RDD DAG，并提交job，本文主要介绍JobScheduler的细节。 2. JobSchedulerJobScheduler在StreamingContext调用start时启动，启动序列如下：1234Strea">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark Streaming(2) - JobScheduler、JobGenerator">
+<meta property="og:url" content="http://yoursite.com/2017/05/07/Spark-Streaming-2-JobScheduler、JobGenerator/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文基于Spark 2.11 1. 前言Spark Streaming(1)中提到JobScheduler使用JobGenerator可以每隔一段时间根据DStream DAG创建出RDD DAG，并提交job，本文主要介绍JobScheduler的细节。 2. JobSchedulerJobScheduler在StreamingContext调用start时启动，启动序列如下：1234Strea">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-01-24T11:21:36.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark Streaming(2) - JobScheduler、JobGenerator">
+<meta name="twitter:description" content="本文基于Spark 2.11 1. 前言Spark Streaming(1)中提到JobScheduler使用JobGenerator可以每隔一段时间根据DStream DAG创建出RDD DAG，并提交job，本文主要介绍JobScheduler的细节。 2. JobSchedulerJobScheduler在StreamingContext调用start时启动，启动序列如下：1234Strea">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/05/07/Spark-Streaming-2-JobScheduler、JobGenerator/"/>
+
+
+
+
+
+  <title>Spark Streaming(2) - JobScheduler、JobGenerator | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/07/Spark-Streaming-2-JobScheduler、JobGenerator/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Spark Streaming(2) - JobScheduler、JobGenerator</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-07T19:20:57+08:00">
+                2017-05-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><em>本文基于Spark 2.11</em></p>
+<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>Spark Streaming(1)中提到JobScheduler使用JobGenerator可以每隔一段时间根据DStream DAG创建出RDD DAG，并提交job，本文主要介绍JobScheduler的细节。</p>
+<h1 id="2-JobScheduler"><a href="#2-JobScheduler" class="headerlink" title="2. JobScheduler"></a>2. JobScheduler</h1><p>JobScheduler在StreamingContext调用start时启动，启动序列如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StreamingContext#start</span><br><span class="line">       -&gt;JobScheduler#start</span><br><span class="line">             -&gt; ReceiverTracker#start</span><br><span class="line">                   -&gt;JobGenerator#start</span><br></pre></td></tr></table></figure></p>
+<p>JobScheduler有如下成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">private val jobSets: java.util.Map[Time, JobSet] = new ConcurrentHashMap[Time, JobSet]</span><br><span class="line"> private val numConcurrentJobs = ssc.conf.getInt(&quot;spark.streaming.concurrentJobs&quot;, 1)</span><br><span class="line"> private val jobExecutor =</span><br><span class="line">   ThreadUtils.newDaemonFixedThreadPool(numConcurrentJobs, &quot;streaming-job-executor&quot;)</span><br><span class="line"> private val jobGenerator = new JobGenerator(this)</span><br><span class="line"></span><br><span class="line"> // These two are created only when scheduler starts.</span><br><span class="line"> // eventLoop not being null means the scheduler has been started and not stopped</span><br><span class="line"> var receiverTracker: ReceiverTracker = null</span><br><span class="line"> // A tracker to track all the input stream information as well as processed record number</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>jobSets。<br>job生成时间到jobs的映射，JobGenerator调用DStreamGraph为持有的每一个DStream DAG生成一个job返回给JobGenerator，JobGenerator将时间以及生成的jobs反馈给Jobscheudler，保存在jobSets里。JobGenerator并没有提交job，job是由JobScheudler提交的。</li>
+<li>numConcurrentJobs<br>控制同时能运行的job数量。</li>
+<li>jobExecutor<br>线程池，由numConccurrentJobs控制线程数量，jobExecutor里提交job并等待结果。由于等待结果是一个阻塞操作，所以一个线程同时只能提交一个job</li>
+<li>jobGenerator<br>JobScheduler委托用来生成job</li>
+<li>receiverTracker，JobScheduler启动，接收Receiver上报的数据batch信息。</li>
+</ol>
+<p>#3. JobGenerator生成job<br>上面说到JobScheduler委托JobGenerator生成job，<br>下面是JobGenerator的核心成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">private val timer = new RecurringTimer(clock, ssc.graph.batchDuration.milliseconds,</span><br><span class="line">    longTime =&gt; eventLoop.post(GenerateJobs(new Time(longTime))), &quot;JobGenerator&quot;)</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line">  private var eventLoop: EventLoop[JobGeneratorEvent] = null</span><br><span class="line"></span><br><span class="line">  // last batch whose completion,checkpointing and metadata cleanup has been completed</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>timer<br>定时器，JobGenerator定时生成job，时间间隔batchDuration就是创建StreamingContext是传入的，这个timer每隔timeDuration时间网eventLoop中发送一条生成job的消息。</li>
+<li>eventLoop<br>一直运行，接收消息，做出处理。接受的消息类型有:<ul>
+<li>GenerateJobs, 使用DSteamGraph生成job</li>
+<li>DoCheckpoint，提交新的job去做checkpoint</li>
+<li>ClearCheckpointData,DoCheckpoint都是在job完成后清楚信息的</li>
+</ul>
+</li>
+</ol>
+<p><strong>生成job</strong><br>timer定时器每隔batchDuration往eventLoop发送GenerateJob事件生成job，下面是eventLoop时间主循环中处理GenerateJob事件调用如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">eventLoop#processEvent</span><br><span class="line">   --&gt; jobGenerator#generateJobs</span><br></pre></td></tr></table></figure></p>
+<p>下面是JobGenerator的generateJobs<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">private def generateJobs(time: Time) &#123;</span><br><span class="line">   // Checkpoint all RDDs marked for checkpointing to ensure their lineages are</span><br><span class="line">   // truncated periodically. Otherwise, we may run into stack overflows (SPARK-6847).</span><br><span class="line">   ssc.sparkContext.setLocalProperty(RDD.CHECKPOINT_ALL_MARKED_ANCESTORS, &quot;true&quot;)</span><br><span class="line">   Try &#123;</span><br><span class="line">     jobScheduler.receiverTracker.allocateBlocksToBatch(time) // allocate received blocks to batch</span><br><span class="line">     graph.generateJobs(time) // generate jobs using allocated block</span><br><span class="line">   &#125; match &#123;</span><br><span class="line">     case Success(jobs) =&gt;</span><br><span class="line">       val streamIdToInputInfos = jobScheduler.inputInfoTracker.getInfo(time)</span><br><span class="line">       //将jobs反馈给JobScheudler，等待调度</span><br><span class="line">       jobScheduler.submitJobSet(JobSet(time, jobs, streamIdToInputInfos))</span><br><span class="line">     case Failure(e) =&gt;</span><br><span class="line">       jobScheduler.reportError(&quot;Error generating jobs for time &quot; + time, e)</span><br><span class="line">       PythonDStream.stopStreamingContextIfPythonProcessIsDead(e)</span><br><span class="line">   &#125;</span><br><span class="line">   eventLoop.post(DoCheckpoint(time, clearCheckpointDataLater = false))</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>receiverTracker.allocateBlocksToBatch(time)根据当前时间time，从已经汇报的数据中生成数据块，后续根据DStream生成RDD的数据就是根据time检索到本次生成的数据块</li>
+<li>graph.generateJobs生成jobs</li>
+<li>jobScheduler.submitJobSet,反馈给Jobscheudler等待人物调度</li>
+<li>eventLoop.post，创建job做checkpoint</li>
+</ol>
+<p>第二步创建中创建job有如下调用序列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">DStreamGraph#generateJobs</span><br><span class="line">    -&gt;DStream#generateJob</span><br><span class="line"></span><br><span class="line">//DStream#generateJob</span><br><span class="line">private[streaming] def generateJob(time: Time): Option[Job] = &#123;</span><br><span class="line">    // 将DStream转换成RDD</span><br><span class="line">    getOrCompute(time) match &#123;</span><br><span class="line">      case Some(rdd) =&gt;</span><br><span class="line">        // 此处创建了函数，函数里基于当前RDD提交了job</span><br><span class="line">        // JobScheduler在jobExecutor线程池中调度job时，该函数会执行</span><br><span class="line">        val jobFunc = () =&gt; &#123;</span><br><span class="line">          val emptyFunc = &#123; (iterator: Iterator[T]) =&gt; &#123;&#125; &#125;</span><br><span class="line">          context.sparkContext.runJob(rdd, emptyFunc)</span><br><span class="line">        &#125;</span><br><span class="line">        Some(new Job(time, jobFunc))</span><br><span class="line">      case None =&gt; None</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>使用time，以及一个jobFunc的函数创建Job，jobFunc在调度时执行。</p>
+<h1 id="4-JobScheduler调度job"><a href="#4-JobScheduler调度job" class="headerlink" title="4. JobScheduler调度job"></a>4. JobScheduler调度job</h1><p>3中面提到JobGenerator生成jobs并将生成的job反馈给JobScheduler，2中说到到JobScheduler使用jobExecutor调度job</p>
+<p>下面是JobScheduler的submitJobSet方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">def submitJobSet(jobSet: JobSet) &#123;</span><br><span class="line">    if (jobSet.jobs.isEmpty) &#123;</span><br><span class="line">      logInfo(&quot;No jobs added for time &quot; + jobSet.time)</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">      listenerBus.post(StreamingListenerBatchSubmitted(jobSet.toBatchInfo))</span><br><span class="line">      jobSets.put(jobSet.time, jobSet）</span><br><span class="line">      jobSet.jobs.foreach(job =&gt; jobExecutor.execute(new JobHandler(job)))</span><br><span class="line">      logInfo(&quot;Added jobs for time &quot; + jobSet.time)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面代码中<code>jobSet.jobs.foreach(job =&gt; jobExecutor.execute(new JobHandler(job)))</code>对JobGenerator传递过来的每一个job包装成JobHandler，然后在jobExecutor线程池中调度执行。</p>
+<p>JobHandler实现了Runnable接口，是的能在线程池中运行，它的run方法如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">def run() &#123;</span><br><span class="line">     val oldProps = ssc.sparkContext.getLocalProperties</span><br><span class="line">     try &#123;</span><br><span class="line">       ssc.sparkContext.setLocalProperties(SerializationUtils.clone(ssc.savedProperties.get()))</span><br><span class="line">       val formattedTime = UIUtils.formatBatchTime(</span><br><span class="line">         job.time.milliseconds, ssc.graph.batchDuration.milliseconds, showYYYYMMSS = false)</span><br><span class="line">       val batchUrl = s&quot;/streaming/batch/?id=$&#123;job.time.milliseconds&#125;&quot;</span><br><span class="line">       val batchLinkText = s&quot;[output operation $&#123;job.outputOpId&#125;, batch time $&#123;formattedTime&#125;]&quot;</span><br><span class="line"></span><br><span class="line">       ssc.sc.setJobDescription(</span><br><span class="line">         s&quot;&quot;&quot;Streaming job from &lt;a href=&quot;$batchUrl&quot;&gt;$batchLinkText&lt;/a&gt;&quot;&quot;&quot;)</span><br><span class="line">       ssc.sc.setLocalProperty(BATCH_TIME_PROPERTY_KEY, job.time.milliseconds.toString)</span><br><span class="line">       ssc.sc.setLocalProperty(OUTPUT_OP_ID_PROPERTY_KEY, job.outputOpId.toString)</span><br><span class="line">       // Checkpoint all RDDs marked for checkpointing to ensure their lineages are</span><br><span class="line">       // truncated periodically. Otherwise, we may run into stack overflows (SPARK-6847).</span><br><span class="line">       ssc.sparkContext.setLocalProperty(RDD.CHECKPOINT_ALL_MARKED_ANCESTORS, &quot;true&quot;)</span><br><span class="line"></span><br><span class="line">       // We need to assign `eventLoop` to a temp variable. Otherwise, because</span><br><span class="line">       // `JobScheduler.stop(false)` may set `eventLoop` to null when this method is running, then</span><br><span class="line">       // it&apos;s possible that when `post` is called, `eventLoop` happens to null.</span><br><span class="line">       var _eventLoop = eventLoop</span><br><span class="line">       if (_eventLoop != null) &#123;</span><br><span class="line">         _eventLoop.post(JobStarted(job, clock.getTimeMillis()))</span><br><span class="line">         // Disable checks for existing output directories in jobs launched by the streaming</span><br><span class="line">         // scheduler, since we may need to write output to an existing directory during checkpoint</span><br><span class="line">         // recovery; see SPARK-4835 for more details.</span><br><span class="line">         SparkHadoopWriterUtils.disableOutputSpecValidation.withValue(true) &#123;</span><br><span class="line">           job.run()</span><br><span class="line">         &#125;</span><br><span class="line">         _eventLoop = eventLoop</span><br><span class="line">         if (_eventLoop != null) &#123;</span><br><span class="line">           _eventLoop.post(JobCompleted(job, clock.getTimeMillis()))</span><br><span class="line">         &#125;</span><br><span class="line">       &#125; else &#123;</span><br><span class="line">         // JobScheduler has been stopped.</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; finally &#123;</span><br><span class="line">       ssc.sparkContext.setLocalProperties(oldProps)</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
+<p>调用Job#run方法，run方法中执行jobFunc完成job的提交。</p>
+<p><strong>job 并行度的控制</strong><br>JobScheduler的成员numConcurrentJobs控制同时能有多少stream job在运行，numConcurrentJobs通过<code>spark.streaming.concurrentJobs</code>配置项获取，默认为1. numCOncurrentJobs控制jobExecutor线程池中线程的数量从而实现控制同时运行的JobHandler数量（而一个JobHandler封装一个job）。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/06/Spark-Streaming-1-基本原理/" rel="next" title="Spark Streaming(1) - 基本原理">
+                <i class="fa fa-chevron-left"></i> Spark Streaming(1) - 基本原理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/09/Spark-Streaming-3-Receiver和ReceiverTacker/" rel="prev" title="Spark Streaming(3) - Receiver和ReceiverTacker">
+                Spark Streaming(3) - Receiver和ReceiverTacker <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-前言"><span class="nav-number">1.</span> <span class="nav-text">1. 前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-JobScheduler"><span class="nav-number">2.</span> <span class="nav-text">2. JobScheduler</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-JobScheduler调度job"><span class="nav-number">3.</span> <span class="nav-text">4. JobScheduler调度job</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

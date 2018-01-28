@@ -232,6 +232,125 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/01/28/IDEA远程调试Spark-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/01/28/IDEA远程调试Spark-1/" itemprop="url">IDEA远程调试Spark</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-28T09:10:35+08:00">
+                2018-01-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/15/Spark-Job提交过程简要/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -317,6 +436,192 @@
 <li>CoarseGrainedExecutorBackend<br>运行在Executor上，从CoarseGrainedSchedulerBackend上接收运行任务的请求（LaunchTask），任务运行结束后通过它向CoarseGrainedSchedulerBackend汇报任务状态(StatusUpdate).</li>
 </ol>
 <p>整个过程大致如下图：<br><img src="/image/spark/Spark-Job-Submit.png" alt="Job提交过程"></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/12/12/IDEA远程调试Spark/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/12/12/IDEA远程调试Spark/" itemprop="url">IDEA远程调试Spark</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-12T17:47:23+08:00">
+                2017-12-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.前言"></a>1.前言</h1><p>本文讲述如何使用IDEA远程调试spark，这里所说的调试spark包括：</p>
+<ol>
+<li>调试spark应用程序，也就是使用spark算子编写的driver application</li>
+<li>spark自身，包括master，worker，所以这个主要针对的是standalone模式下的，使用yarn提交时不存在master和worker这两个角色。</li>
+</ol>
+<p>在开始之前会介绍一下如何使用idea远程debug普通的jar应用，然后远程debug spark原理是一样的。</p>
+<h1 id="2-远程debug-普通的jar应用"><a href="#2-远程debug-普通的jar应用" class="headerlink" title="2.  远程debug 普通的jar应用"></a>2.  远程debug 普通的jar应用</h1><p>先假设远程debug的适用场景是：我将应用程序打成jar包，让它运行在服务器上，然后在本地idea里以debug模式去运行这个jar包，希望达到的效果就像在idea里debug本地代码一样：可以断点，可以查看变量值等等。</p>
+<p>下文将这个运行在服务器上的jar包称为被调试对象(debuggee)。 本地idea称为调试者(debugger).</p>
+<p>远程调试有两种模式，或者说有两种方式可选：</p>
+<ol>
+<li>attach模式， 运行debuggee，让其监听某个ip:port，然后等待debugger启动并连接这个端口，然后就可以在debugger上断点调试。</li>
+<li>listen模式，让debugger监听某个ip:port, 然后启动debugee连接这个端口，接下来在debugger上断点调试。</li>
+</ol>
+<p>以”HelloWorld” 程序为例:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> me.test.helloworld;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloWorld</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"hello world"</span>);</span><br><span class="line">        <span class="keyword">for</span>(String arg : args)&#123;</span><br><span class="line">            System.out.println(arg);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-----------</span><br><span class="line">使用mvn打包，然后可以通过如下命令运行：</span><br><span class="line">&gt; java -cp helloworld-<span class="number">1.0</span>-SNAPSHOT.jar me.test.helloworld.HelloWorld arg1 arg2</span><br></pre></td></tr></table></figure></p>
+<h2 id="2-1-远程调试模式-1-attach模式"><a href="#2-1-远程调试模式-1-attach模式" class="headerlink" title="2.1 远程调试模式-1  attach模式"></a>2.1 远程调试模式-1  attach模式</h2><p>在这种模式下让debuggee监听端口等待debugger连接.<br>IDEA里操作如下图：</p>
+<p><img src="/image/spark/scheme1.png" alt="scheme1.png"></p>
+<p>按照上图复制<code>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</code>，这个是给debuggee的jvm参数。</p>
+<ul>
+<li>这里将suspend=n, 改成了suspend=y， 这样debuggee启动后会阻塞住直到debugger连接它</li>
+<li>address=5005，表示debuggee监听这个端口，也可以指定成address=<ip>:<port>的形式，这里ip是debuggee运行所在的机器的ip</port></ip></li>
+<li>上图中Host， Port应该和上面address中的ip，port一样，debugger会连接这个ip:port</li>
+<li>transport=dt_socket是debugger和debuggee之间传输协议</li>
+<li>server=y, 在模式1下这样指定， 表示debuggee作为server等待debugger连接</li>
+</ul>
+<p>在idea(debugger)里指定好这些以后， 接下来就是先  运行debuggee了，如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp helloworld-1.0-SNAPSHOT.jar -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=192.168.1.102:5005  me.test.helloworld.HelloWorld arg1 arg2</span><br></pre></td></tr></table></figure></p>
+<p>运行后出现下面信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Listening for transport dt_socket at address: 5005</span><br></pre></td></tr></table></figure></p>
+<p>表示debuggee等待连接。<br>接下来的过程就是在idea里，设置断点，然后像本地debug一样了。</p>
+<h2 id="2-2-远程调试模式-2-listen模式"><a href="#2-2-远程调试模式-2-listen模式" class="headerlink" title="2.2 远程调试模式-2 listen模式"></a>2.2 远程调试模式-2 listen模式</h2><p>即让debugger监听端口等待debuggee的连接, 因此先启动debugger。</p>
+<p>IDEA里操作如下：<br><img src="/image/spark/scheme2.png" alt="scheme2.png"></p>
+<p>该模式下先启动debugger，也就是启动idea调试，debugger会监听端口等待debuggee连接。</p>
+<p>按照上图复制给debuggee的jvm参数：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-agentlib:jdwp=transport=dt_socket,server=n,address=172.16.202.150:5005,suspend=y</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>这里去掉了<code>onthrow=&lt;FQ exception class name&gt;,onuncaught=&lt;y/n&gt;</code> 不知道是干什么的</li>
+<li>address==172.16.202.150:5005， debuggee连接该ip:port</li>
+<li>suspend=y,  listen模式下可以去掉</li>
+<li>server=n， 表示由debuggee发起连接到debugger。</li>
+</ul>
+<p>此时debugger先运行并监听端口，接下来运行debuggee就可以了，如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -cp helloworld-1.0-SNAPSHOT.jar -agentlib:jdwp=transport=dt_socket,server=n,address=172.16.202.150:5005 me.test.helloworld.HelloWorld</span><br></pre></td></tr></table></figure></p>
+<p><strong>本章参考</strong><a href="https://www.ibm.com/developerworks/cn/opensource/os-eclipse-javadebug/" target="_blank" rel="noopener">使用 Eclipse 远程调试 Java 应用程序
+</a></p>
+<h1 id="3-调试Spark"><a href="#3-调试Spark" class="headerlink" title="3. 调试Spark"></a>3. 调试Spark</h1><p>Spark按照角色可以分为Master、 Worker、Driver、Executor。其中Master, Worker只有在Standalone部署模式下才有，使用Yarn提交时只有Driver可Executor。使用Spark算子开发的应用提交执行后会都一个Driver和至少一个Executor，Driver充当job manager的角色，executor作为task executor执行算子。</p>
+<p>下文先按照Master，Worker，Driver，Executor的顺序介绍如何远程调试。</p>
+<h2 id="3-1-调试Master"><a href="#3-1-调试Master" class="headerlink" title="3.1 调试Master"></a>3.1 调试Master</h2><p>Master的main 方法入口在<code>org.apache.spark.deploy.master.Master</code>中。<br>通过spark源码包中的<code>sbin/start-master.sh</code>运行Master，源码包中查找的jar包的路径是<code>assembly/target/scala-&lt;version&gt;/jars/</code>, 修改了源码后可以通过运行<code>mvn install -DskipTests</code>重新生成jar包到该路径下。</p>
+<p>想要远程调试Master主要就是怎么将<code>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</code>这种参数设置为启动Master的jvm参数了。</p>
+<p>这里涉及到了启动Master的过程，不讲了，直接说方法。Master启动时会接收：<code>SPARK_MASTER_OPTS</code>和<code>SPARK_DAEMON_JAVA_OPTS</code>这两个环境变量的值作为master启动的jvm参数，其中：</p>
+<ol>
+<li>SPARK_MASTER_OPTS仅仅被Master使用</li>
+<li>SPARK_DAEMON_JAVA_OPTS，会被Master和Worker使用</li>
+</ol>
+<p>因此可以在<code>start-master.sh</code>中设置环境变量如下：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export SPARK_MASTER_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</span><br></pre></td></tr></table></figure></p>
+<p>这样运行<code>start-master.sh</code>, 随后就能在<code>${SPARK_HOME}/logs</code>路径下生成的日志文件里看到<br><code>Listening for transport dt_socket at address: 5005</code><br>这样一条日志信息，表示Master的jvm阻塞并监听端口等待debugger连接，结下来就是在idea里建立远程连接。</p>
+<p>还可以在<code>${SPARK_HOME}/conf</code>下面新建一个文件名为<code>java-opts</code>, 在这个文件里放jvm参数，一个参数一行，如下所示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</span><br><span class="line">-Xmn2G</span><br></pre></td></tr></table></figure></p>
+<p>但是这个文件内容会被Master，Worker启动时作为jvm参数使用。</p>
+<p><strong>注</strong>：不要通过以上在几种方式里加<code>-Xmx</code>指定最大堆内存，可以通过设置环境变量<code>SPARK_DAEMON_MEMORY</code>为<code>1G</code>等等这种方式设置<code>-Xmx</code>的值。对于Worker也是同样的。</p>
+<h2 id="3-2-调试Worker"><a href="#3-2-调试Worker" class="headerlink" title="3.2 调试Worker"></a>3.2 调试Worker</h2><p>Worker的main方法在<code>org.apache.spark.deploy.worker.Worker</code>中。<br>通过<code>sbin/start-worker.sh</code>启动worker。</p>
+<p>和Master不同的是Worker的jvm启动参数的值是从环境变量<code>SPARK_WORKER_OPTS</code>读取的。</p>
+<p>可以在<code>start-worker.sh</code>中通过<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export SPARK_WORKER_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5006</span><br></pre></td></tr></table></figure></p>
+<p>设置。其他和Master一样。</p>
+<h2 id="3-3-调试Driver"><a href="#3-3-调试Driver" class="headerlink" title="3.3 调试Driver"></a>3.3 调试Driver</h2><p>用户自己使用Spark算子开发应用，然后使用<code>spark-submit.sh</code>提交应用去集群作为一个job运行，job运行起来后会有一个driver和若干executor，driver相当于这个运行中的job的JobManager，负责将RDD DAG划分为stage，创建task，调度task去executor执行等等。</p>
+<p>从运行<code>spark-submit</code>脚本，到用户打包的jar被提交的集群运行，中间经历好几个过程。最终是由org.apache.spark.deploy.SparkSubmit，SparkSubmit自身的启动命令是由 <code>org.apache.spark.launcher.Main</code>创建的，创建时会从环境变量<code>SPARK_SUBMIT_OPTS</code>获取值作为<code>SparkSubmit</code>的jvm参数，所以可用<code>export SPARK_SUBMIT_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=&lt;port&gt;</code>来调试SparkSubmit。</p>
+<p>说回Driver，可以在<code>${SPARK_HOME}/conf/</code>下创建spark-defaults.conf文件，加入下面一行:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spark.driver.extraJavaOptions      -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5009</span><br></pre></td></tr></table></figure></p>
+<p><code>spark.driver.extraJavaOptions</code>后面的配置都会作为driver的jvm启动参数，后面就是在idea里断点调试driver了</p>
+<h2 id="3-4-调试Executor"><a href="#3-4-调试Executor" class="headerlink" title="3.4 调试Executor"></a>3.4 调试Executor</h2><p>driver只是一个job manager的角色，任务的执行（也就是那些spark 算子map, filter…的执行是在executor上执行的）。</p>
+<p>executor对应的main方法所在类是<code>org.apache.spark.executor.CoarseGrainedExecutorBackend</code>。<br>由于一个job 可能有多个executor，不是很好调试，不过测试环境下应该可以设置一个executor，executor的jvm启动参数可以通过在<code>${SPARK_HOME/conf/spark-defaults.conf}</code>文件中加入：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spark.executor.extraJavaOptions  your-executor-jvm-params</span><br></pre></td></tr></table></figure></p>
+<p>传递。 比如：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spark.executor.extraJavaOptions -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005</span><br></pre></td></tr></table></figure></p>
+<p>设置按照这种方式设置好后，使用<code>spark-submit.sh</code>提交任务，假设是在standalone模式的集群，那么提交运行后Driver会先运行起来, 然后Driver申请在某个Worker上运行<code>org.apache.spark.executor.CoarseGrainedExecutorBackend</code>, 这个会单独起一个jvm，使用<code>spark.executor.extraJavaOptions</code>参数，如果使用模式1 attach模式，你就可以在CoarseGrainedExecutorBackend里断点调试了。</p>
+<p>CoarseGrainedExecutorBackend运行起来不代表运行spark 算子的任务运行起来了，Driver会将任务序列化发送给CoarseGrainedExecutorBackend去执行，CoarseGrainedExecutorBackend创建Executor（包<code>org.apache.spark.executor.Executor</code>）去执行task，可以在Executor的run方法断点去调试任务。</p>
 
           
         
@@ -1301,381 +1606,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/18/maven插件-1-使用插件/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Li Weisheng">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/11/18/maven插件-1-使用插件/" itemprop="url">maven插件(1) - 使用插件</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-18T20:27:56+08:00">
-                2017-11-18
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><blockquote>
-<p>Maven is - at its heart - a plugin execution framework; all work is done by plugins. </p>
-</blockquote>
-<p>maven实际上一个插件执行框架，所有的工作实际上都是通过插件完成，一个插件通常提供若干目标（goal），通过如下形式的命令执行插件目标：<br><code>mvn [plugin name]:[goal name]</code></p>
-<p>例如可以通过编译插件compiler去编译目标，命令如下：<br><code>mvn compiler:compile</code></p>
-<p><strong>插件类型</strong><br>插件有两类：</p>
-<table>
-<thead>
-<tr>
-<th>插件类型</th>
-<th>解释</th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>build plugins</td>
-<td>build项目时期执行这类插件，且这类插件必须配置在pom的<build></build>中</td>
-<td></td>
-</tr>
-<tr>
-<td>report plugins</td>
-<td>mvn site期间执行的插件，用于生成项目报表文档之类的，需要配置在pom的<reporting></reporting>之间</td>
-</tr>
-</tbody>
-</table>
-<p>由于我从来没有用过report plugin，所以本文只会讲build plugins。</p>
-<h1 id="2-生命周期"><a href="#2-生命周期" class="headerlink" title="2. 生命周期"></a>2. 生命周期</h1><p>maven是一种基于构建生命周期(build lifecycle)的项目构建工具, 也就是说一个项目的构建和发布是要经历几个过程的，目前主要包含三个过程：</p>
-<ol>
-<li>clean</li>
-<li>default</li>
-<li>site</li>
-</ol>
-<p>这其中每一个过程又有若干个阶段（phase）组成。下面列表只是简单列出了开发者比较常见的phase：<br><strong>1. clean</strong></p>
-<table>
-<thead>
-<tr>
-<th>phase</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>clean</td>
-<td>起初之前一起build生成的文件</td>
-</tr>
-</tbody>
-</table>
-<p><strong>2. default</strong></p>
-<table>
-<thead>
-<tr>
-<th>phase</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>validate</td>
-<td>对项目的必要信息或资源进行验证</td>
-</tr>
-<tr>
-<td>initialize</td>
-<td>初始化操作，比如常见目录，设置属性</td>
-</tr>
-<tr>
-<td>compile</td>
-<td>编译源文件</td>
-</tr>
-<tr>
-<td>test</td>
-<td>使用测试框架跑所有测试用例</td>
-</tr>
-<tr>
-<td>package</td>
-<td>打包项目</td>
-</tr>
-<tr>
-<td>install</td>
-<td>部署到本地repository</td>
-</tr>
-<tr>
-<td>deploy</td>
-<td>发布到远程仓库</td>
-</tr>
-</tbody>
-</table>
-<p><strong>3. site</strong></p>
-<table>
-<thead>
-<tr>
-<th>phase</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>site</td>
-<td>生成项目文档的网页资源</td>
-</tr>
-</tbody>
-</table>
-<p>使用过mvn的就会发现，一个phase对应一个mvn的命令，比如当执行<code>mvn compile</code>命令时就是执行该phase之前的所有phase。<br>但是前言中说过mvn是通过插件来执行任务的，当执行<code>mvn compile</code>这个phase时，实际上是执行绑定在compile这个phase上的插件目标，由于compile这个phase默认绑定了<code>compiler: compile</code>（compiler插件的compile目标）,因此执行<code>mvn compile</code>等于去执行了<code>mvn compiler:compile</code></p>
-<p>再例如：执行<code>mvn package</code> 实际上执行了插件<code>mvn jar:jar</code>(注意此处假设pom里配置了<packaging>jar<package>), 因为package这个phase默认绑定了<code>jar:jar</code>这个插件目标。</package></packaging></p>
-<p><strong>附：</strong><br>这一节只是简单介绍了插件构建的生命周期一个，省略了一些内容，更多的细节请参考官方文档介绍<a href="http://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html#Lifecycle_Reference" target="_blank" rel="noopener">mvn 生命周期</a></p>
-<h1 id="3-插件配置"><a href="#3-插件配置" class="headerlink" title="3. 插件配置"></a>3. 插件配置</h1><p>本文只介绍build plugin， build plugin需要写在pom文件的<code>&lt;build&gt;&lt;/build&gt;</code>中,<br>一个插件通常包含如下配置：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span></span></span><br><span class="line"><span class="tag">  <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0</span></span></span><br><span class="line"><span class="tag"><span class="string">                      https://maven.apache.org/xsd/maven-4.0.0.xsd"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">build</span>&gt;</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="tag">&lt;<span class="name">plugins</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-jar-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.6<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">extensions</span>&gt;</span>false<span class="tag">&lt;/<span class="name">extensions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">inherited</span>&gt;</span>true<span class="tag">&lt;/<span class="name">inherited</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">classifier</span>&gt;</span>test<span class="tag">&lt;/<span class="name">classifier</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>...<span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">executions</span>&gt;</span>...<span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">build</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">project</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>一个<plugin></plugin>表示一个插件， <groupid>,<artifactid>,<version>都是引入必要配置。插件本质上托管在mvn仓库里。</version></artifactid></groupid></li>
-<li><inherited>表示是否当前pom的子pom中继承这个插件配置，true表示子pom继承父pom这个插件配置，那么你就可以在子pom上通过mvn命令使用这个插件</inherited></li>
-<li><configuration>中包含了插件类实例化时用于初始化类成员信息</configuration></li>
-<li><p><dependencies>, 插件自身也会依赖外部包，<dependencies>中可以为插件指定特定的依赖包， 引入方式如下:</dependencies></dependencies></p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependency</span>&gt;</span> </span><br><span class="line">      <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>...<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>...<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">version</span>&gt;</span>...<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p><executions>, 一个插件可能包含多个goal，<executions>中可以单独为某个goal指定配置，以及将goal绑定到某个phase。executions包含的elements如下：</executions></executions></p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--需要在&lt;executions&gt;里面唯一的id--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">id</span>&gt;</span><span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">          <span class="comment">&lt;!--列出需要特定去配置的所有goal--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">           <span class="tag">&lt;<span class="name">goal</span>&gt;</span>run<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--将这些goal绑定到phase--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">phase</span>&gt;</span>verify<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">         <span class="comment">&lt;!--指定子pom是否继承这些配置--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">inherited</span>&gt;</span>false<span class="tag">&lt;/<span class="name">inherited</span>&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="comment">&lt;!--这里指定配置--&gt;</span></span><br><span class="line">         <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">         ...</span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">       ...</span><br><span class="line"><span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<p><strong>一个示例</strong><br>比如下面就是一个几乎所有人都会用到的插件配置，compiler：<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-compiler-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.5.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span>  <span class="comment">&lt;!--指定compiler插件版本信息--&gt;</span></span><br><span class="line">       <span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">           <span class="comment">&lt;!--插件实例化参数，这个参数是设置javac -source的值--&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">source</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">source</span>&gt;</span>  </span><br><span class="line">           <span class="comment">&lt;!--插件实例化参数，这个参数是设置javac -target的值--&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">target</span>&gt;</span>1.7<span class="tag">&lt;/<span class="name">target</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">plugin</span>&gt;</span></span><br><span class="line"></span><br><span class="line">这里没有指定<span class="tag">&lt;<span class="name">executions</span>&gt;</span>，因为compiler插件的目标compile默认被绑定到compile这个phase上了，</span><br><span class="line">目标testCompile被绑定到了test-compile这个phase上了。</span><br><span class="line">当然你可以显式指定，加入如下配置即可：</span><br><span class="line"><span class="tag">&lt;<span class="name">executions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">id</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">              <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                  <span class="tag">&lt;<span class="name">goal</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">phase</span>&gt;</span>compile<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">execution</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">id</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">id</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">phase</span>&gt;</span>test-compile<span class="tag">&lt;/<span class="name">phase</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;<span class="name">goals</span>&gt;</span></span><br><span class="line">                 <span class="tag">&lt;<span class="name">goal</span>&gt;</span>testCompile<span class="tag">&lt;/<span class="name">goal</span>&gt;</span></span><br><span class="line">             <span class="tag">&lt;/<span class="name">goals</span>&gt;</span></span><br><span class="line">       <span class="tag">&lt;/<span class="name">execution</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">executions</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
-<p>所以当执行<code>mvn compile</code>时其实执行了插件目标<code>mvn compiler:compile</code>,执行<code>mvn test-compile</code>时执行了插件目标<code>mvn compiler:testCompile</code>.</p>
-<p><strong>附</strong></p>
-<ol>
-<li>关于插件参数配置参考<a href="http://maven.apache.org/guides/mini/guide-configuring-plugins.html" target="_blank" rel="noopener">guide-configuring-plugins</a></li>
-<li>关于pom中使用插件参考<a href="http://maven.apache.org/pom.html" target="_blank" rel="noopener">plugins in pom</a></li>
-<li>关于maven插件列表参考<a href="http://maven.apache.org/plugins/" target="_blank" rel="noopener">available plugins</a></li>
-</ol>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/15/spark如何只在map端做完成reduce的工作/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Li Weisheng">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/11/15/spark如何只在map端做完成reduce的工作/" itemprop="url">spark如何只在map端做完成reduce的工作</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-15T20:20:24+08:00">
-                2017-11-15
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1.  前言"></a>1.  前言</h1><p>有时候需要按照key去做reduce操作时，一般情况下调用reduceByKey就可以完成按照key reduce的任务，reduceByKey的调用就必然意味着shuffle操作。但是有的时候如果我们已经知道相同的key都在同一个partition里面了，这个时候其实没有必要去使用reduceByKey通过一次shuffle将相同的key收集到同一个reducer分区里面，而是可以直接在map端就去完成reduce操作。</p>
-<p>比如下面是一个word count在2个分区里面的分布：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">------partition 1----------</span><br><span class="line">(failure,1)</span><br><span class="line">(count,1)</span><br><span class="line">(thief,1)</span><br><span class="line">(failure,1)</span><br><span class="line"></span><br><span class="line">------partition 2--------</span><br><span class="line">(fortification,1)</span><br><span class="line">(peek,1) </span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,1)</span><br></pre></td></tr></table></figure></p>
-<p>由于相同的word都在同一个分区里面了，没必要去通过reduceByKey去完成word count操作。</p>
-<h1 id="2-解决方法"><a href="#2-解决方法" class="headerlink" title="2. 解决方法"></a>2. 解决方法</h1><p>实现一个RDD，在其compute方法里完成按key聚合，实现如下:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> K: key type</span></span><br><span class="line"><span class="comment"> V: 上游rdd中value的type</span></span><br><span class="line"><span class="comment"> C: V 经过reduce之后的type</span></span><br><span class="line"><span class="comment">参考ShufferedRDD</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MapsideReduceRDD</span>[<span class="type">K</span>:<span class="type">ClassTag</span>, <span class="type">V</span>:<span class="type">ClassTag</span>, <span class="type">C</span>:<span class="type">ClassTag</span>](<span class="params"></span></span></span><br><span class="line"><span class="class"><span class="params">   // 上游rdd，要求上游的rdd中数据已经转换成(key,value</span>)<span class="title">的形式</span></span></span><br><span class="line"><span class="class">  <span class="title">@transient</span> <span class="title">var</span> <span class="title">prev</span> </span>: <span class="type">RDD</span>[_ &lt;: <span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]</span><br><span class="line"></span><br><span class="line">) <span class="keyword">extends</span> <span class="type">RDD</span>[(<span class="type">K</span>,<span class="type">C</span>)](prev)&#123;</span><br><span class="line">  <span class="comment">// 需要一个aggregator去完成value的聚合, reduceByKey也会创建这个</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">var</span> aggregator : <span class="type">Option</span>[<span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]] = <span class="type">None</span></span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">setAggregator</span></span>(aggregator: <span class="type">Aggregator</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>]):<span class="keyword">this</span>.<span class="keyword">type</span> =&#123;</span><br><span class="line">    <span class="keyword">this</span>.aggregator = <span class="type">Option</span>(aggregator)</span><br><span class="line">    <span class="keyword">this</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">compute</span></span>(split: <span class="type">Partition</span>, context: <span class="type">TaskContext</span>): <span class="type">Iterator</span>[(<span class="type">K</span>, <span class="type">C</span>)] = &#123;</span><br><span class="line">    <span class="comment">/* 创建一个ExternalAppendOnlyMap，这个数据结构是spark中提供的，插入</span></span><br><span class="line"><span class="comment"> .  (K,V)的数据，然后按照传递给他聚合方法完成(K,V)的聚合，返回(K,C)的数据</span></span><br><span class="line"><span class="comment">   */</span></span><br><span class="line">    <span class="keyword">val</span> externalMap = createExternalMap</span><br><span class="line">  <span class="comment">// 这里迭代上游rdd中(K,V)类型的记录</span></span><br><span class="line">    <span class="keyword">val</span> rddIter = dependencies(<span class="number">0</span>).rdd.asInstanceOf[<span class="type">RDD</span>[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]]].iterator(split, context)</span><br><span class="line">    <span class="comment">// 插入到externalMap中</span></span><br><span class="line">    externalMap.insertAll(rddIter)</span><br><span class="line">   <span class="comment">// 返回</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">InterruptibleIterator</span>(context,</span><br><span class="line">      externalMap.iterator</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="keyword">protected</span> <span class="function"><span class="keyword">def</span> <span class="title">getPartitions</span></span>: <span class="type">Array</span>[<span class="type">Partition</span>] = firstParent[<span class="type">Product2</span>[<span class="type">K</span>,<span class="type">V</span>]].partitions</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">createExternalMap</span></span>: <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>] = &#123;</span><br><span class="line">    require(aggregator.nonEmpty, <span class="string">"aggregator should not be empty"</span>)</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">      创建ExternalAppendOnlyMap， 它需要一下参数:</span></span><br><span class="line"><span class="comment">      - 一个V =&gt; C 类型的函数，用于迭代时发现某个key的第一个value，将它转换成C</span></span><br><span class="line"><span class="comment">     - 一个(C,V) =&gt; C类型的函数，用于将value合并到C上</span></span><br><span class="line"><span class="comment">     - 一个(C,C) =&gt; C类型的函数，将两个部分聚合的结果合并到一起</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">new</span> <span class="type">ExternalAppendOnlyMap</span>[<span class="type">K</span>,<span class="type">V</span>,<span class="type">C</span>](aggregator.get.createCombiner, aggregator.get.mergeValue, aggregator.get.mergeCombiners)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>ExternalAppendOnlyMap会在必要时spill到磁盘</p>
-<h2 id="2-1-测试"><a href="#2-1-测试" class="headerlink" title="2.1 测试"></a>2.1 测试</h2><p>测试类如下：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">MapsideReduceTest</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> =&#123;</span><br><span class="line">    <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>()</span><br><span class="line">    <span class="keyword">val</span> words = <span class="type">Seq</span>(<span class="type">Seq</span>(<span class="string">"failure"</span>,<span class="string">"count"</span>,<span class="string">"thief"</span>,<span class="string">"failure"</span>,<span class="string">"count"</span>),<span class="type">Seq</span>(<span class="string">"fortification"</span>,<span class="string">"peek"</span>,<span class="string">"lepta"</span>,<span class="string">"peek"</span>));</span><br><span class="line">    <span class="comment">// 分两个分区，第一个分区包含Seq("failure","count","thief","failure","count")</span></span><br><span class="line">    <span class="comment">// 这样相同的word只在一个分区里面，然后统计word count</span></span><br><span class="line">    <span class="keyword">val</span> wordsRDD = sc.parallelize(words, <span class="number">2</span>)</span><br><span class="line">    <span class="comment">// flatMap将Seq()展开，然后调用map转换成(failure,1)这种数据</span></span><br><span class="line">    <span class="keyword">val</span> wordsCount = wordsRDD.flatMap(seq =&gt; seq).map(word =&gt; (word,<span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> aggregator = createAggregator</span><br><span class="line">    <span class="keyword">val</span> mapsideReduceRDD = <span class="keyword">new</span> <span class="type">MapsideReduceRDD</span>[<span class="type">String</span>, <span class="type">Int</span>, <span class="type">Int</span>](wordsCount).setAggregator(aggregator)</span><br><span class="line">    mapsideReduceRDD.saveAsTextFile(<span class="string">"/Users/eric/mapsideReduce"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">createAggregator</span></span>: <span class="type">Aggregator</span>[<span class="type">String</span>,<span class="type">Int</span>,<span class="type">Int</span>] =&#123;</span><br><span class="line">    <span class="keyword">val</span> createCombiner: <span class="type">Int</span> =&gt; <span class="type">Int</span> = value =&gt; value</span><br><span class="line">    <span class="keyword">val</span> mergeValue : (<span class="type">Int</span>, <span class="type">Int</span>) =&gt; <span class="type">Int</span> = (mergedValue, newValue) =&gt; &#123;</span><br><span class="line">      mergedValue + newValue</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> mergeCombiner = mergeValue</span><br><span class="line"></span><br><span class="line">    <span class="keyword">new</span> <span class="type">Aggregator</span>[<span class="type">String</span>, <span class="type">Int</span>,<span class="type">Int</span>](createCombiner, mergeValue, mergeCombiner)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>提交后测试结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">产生2个输出文件以及内容：</span><br><span class="line">------ part-00000 -------</span><br><span class="line">(failure,2)</span><br><span class="line">(count,2)</span><br><span class="line">(thief,1)</span><br><span class="line"></span><br><span class="line">------- part-00001 ------</span><br><span class="line">(lepta,1)</span><br><span class="line">(peek,2)</span><br><span class="line">(fortification,1)</span><br></pre></td></tr></table></figure></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1721,7 +1656,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">20</span>
+                  <span class="site-state-item-count">33</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1734,7 +1669,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">标签</span>
                 
               </div>

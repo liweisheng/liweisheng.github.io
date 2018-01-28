@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1. mapper接口定义如下：12345678public interface InstancePropertiesMapper &amp;#123;    void addProperties(List&amp;lt;InstanceProperty&amp;gt; properties);&amp;#125;----------------------------------------------------------">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mybatis foreach标签">
+<meta property="og:url" content="http://yoursite.com/2017/08/15/Mybatis-foreach标签/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. mapper接口定义如下：12345678public interface InstancePropertiesMapper &amp;#123;    void addProperties(List&amp;lt;InstanceProperty&amp;gt; properties);&amp;#125;----------------------------------------------------------">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-01-24T06:13:35.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Mybatis foreach标签">
+<meta name="twitter:description" content="1. mapper接口定义如下：12345678public interface InstancePropertiesMapper &amp;#123;    void addProperties(List&amp;lt;InstanceProperty&amp;gt; properties);&amp;#125;----------------------------------------------------------">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/08/15/Mybatis-foreach标签/"/>
+
+
+
+
+
+  <title>Mybatis foreach标签 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/08/15/Mybatis-foreach标签/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Mybatis foreach标签</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-15T14:13:02+08:00">
+                2017-08-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1-mapper接口定义如下："><a href="#1-mapper接口定义如下：" class="headerlink" title="1. mapper接口定义如下："></a>1. mapper接口定义如下：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public interface InstancePropertiesMapper &#123;</span><br><span class="line">    void addProperties(List&lt;InstanceProperty&gt; properties);</span><br><span class="line">&#125;</span><br><span class="line">-----------------------------------------------------------</span><br><span class="line">public class InstanceProperty &#123;</span><br><span class="line">    private String name;</span><br><span class="line">    private Long instanceId;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>此处希望<code>addProperties</code>能一次性往表里插入多条记录，插入的信息以<code>List&lt;InstanceProperty&gt; properties</code>列表保存。<br>假设properties列表中保存的数据如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">&#123;&quot;eric&quot;, 0&#125;,</span><br><span class="line">&#123;&apos;john&apos;, 1&#125;,</span><br><span class="line">&#123;&quot;sam&quot;, 2&#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p>需要达到的效果和下面sql类似:<br><code>insert into properties(name, instance_id) values(&quot;eric&quot;, 0) ,(&quot;john&quot;,1),(&quot;sam&quot;,2);</code>这样的效果.<br>对应mapper.xml如下:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;insert id=&quot;addProperties&quot; parameterType=&quot;java.util.List&quot;&gt;</span><br><span class="line">        INSERT INTO tdt_sync_instance_properties (name,instance_id) VALUES</span><br><span class="line">        &lt;foreach collection=&quot;list&quot; item=&quot;prop&quot; separator=&quot;,&quot;&gt;</span><br><span class="line">            (#&#123;prop.name&#125;,#&#123;prop.instance_id&#125;)</span><br><span class="line">        &lt;/foreach&gt;</span><br><span class="line">        ;</span><br><span class="line">    &lt;/insert&gt;</span><br></pre></td></tr></table></figure></p>
+<p>使用<code>&lt;foreach&gt;</code>标签遍历参数’properties’. 这里使用了一些属性：</p>
+<ol>
+<li>collection=”list”,  后面会解释，当你的参数是List时，这个地方值也必须是list</li>
+<li>item=”prop”, item表示list中的每一个元素,这里list里放的是InstanceProperty，因此可以通过’#{prop.name}’ 访问属性。</li>
+<li>separator=”,”, 设置foreach生成的多条记录之间的分割符。</li>
+</ol>
+<p><strong>foreach的其他属性</strong></p>
+<ol>
+<li>open，close，定义如何将foreach所有记录包围起来，比如如果如同下面这样写：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;foreach collection=&quot;list&quot; item=&quot;prop&quot; separator=&quot;,&quot; open=&quot;&#123;&quot; close=&quot;&#125;&quot;&gt;</span><br><span class="line">            (#&#123;prop.name&#125;,#&#123;prop.instance_id&#125;)</span><br><span class="line">        &lt;/foreach&gt;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>最终生成的就是下面这样：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">insert into properties(name, instance_id) values &#123;(&quot;eric&quot;, 0) ,(&quot;john&quot;,1),(&quot;sam&quot;,2)&#125;;</span><br><span class="line">当然这样没有任何意义，是一条错误的sql语句，这里仅仅是为了举个例子。</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>index<br>当foreach遍历的数list或=者数组时，index代表就是下标，foreach遍历map时index代表key，此时item表示value。</li>
+</ol>
+<p><strong>关于collection属性</strong><br>首先需要知道mybatis怎么处理参数的，传递给XXXMapper接口方法的所有参数会被放到一个map中（后面叫这个map为M），假设存在参数properties：</p>
+<ol>
+<li>传递List类型的参数，则会在M里有一条 {“list” : properties }，所以此时collection设置为“list”就等于拿出M中key=”list”的value，然后遍历它。</li>
+<li>传递数组类型参数， 则会在M里有一条{“array”, properties}，所以此时需要设置collection=”array”.</li>
+<li>传递Map类型的参数， 不会做任何转换，假设你的Map类型的参数中包含的是{“china” :”beijing”, “usa”:”w.d.c”}, 那么M中就有两条映射：{“china” :”beijing”, “usa”:”w.d.c”}  。</li>
+<li>如果传入的是一个bean，那么的bean中的属性作为key，属性值作为value放到M中。</li>
+<li>如果传入的是一个基本类型变量，那么M中就会存在一条key是变量名，value是变量值（由于jdk7之前反射无法拿到参数名，可以使用下面介绍的注解）。</li>
+</ol>
+<p>综上，collection能够指定的值就是M中最终存在的key，<foreach>标签从M中拿到key的value，然后遍历value，所以这个value必须是能够被遍历的对象。</foreach></p>
+<p>以上都是假设你没有在Mapper的接口方法上使用mybatis提供的注解<code>org.apache.ibatis.annotations.Param</code>注解参数名时collection的默认值，如果你在参数上使用了这个注解，那么最终M中的key是注解名，value是参数值，如下：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">PersonMapper</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">insertPerson1</span><span class="params">(@Param(<span class="string">"map"</span>)</span> Map&lt;String, Person&gt; persons)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">使用注解时M中就存在一条<span class="string">"map"</span> -&gt; persons的映射，而不是上面介绍的把persons的key,value直接方到M中</span><br><span class="line"></span><br><span class="line">那么可以在PersonMapper.xml中：</span><br><span class="line">&lt;insert id=<span class="string">"insertPerson1"</span>&gt;</span><br><span class="line">        INSERT INTO mybatis.person VALUES</span><br><span class="line">        &lt;foreach collection=<span class="string">"map"</span> index=<span class="string">"key"</span> item=<span class="string">"person"</span> separator=<span class="string">","</span>&gt;</span><br><span class="line">            (#&#123;p.name&#125;, #&#123;p.age&#125;)</span><br><span class="line">        &lt;/foreach&gt;</span><br><span class="line">&lt;/insert&gt;</span><br><span class="line"></span><br><span class="line">这里collection=<span class="string">"map"</span>, 相当于拿到M.get(<span class="string">"map"</span>)的值，也就是persons， </span><br><span class="line">然后遍历persons， 遍历的结果是index是persons的key， item是对应的value</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/15/Java单例模式/" rel="next" title="Java单例模式">
+                <i class="fa fa-chevron-left"></i> Java单例模式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/22/apache-shiro使用-与spring-boot集成/" rel="prev" title="apache shiro使用 - 与spring boot集成">
+                apache shiro使用 - 与spring boot集成 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-mapper接口定义如下："><span class="nav-number">1.</span> <span class="nav-text">1. mapper接口定义如下：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

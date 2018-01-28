@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1. 实现单例模式 饿汉模式和懒汉模式单例模式根据实例化时机分为饿汉模式和懒汉模式。饿汉模式，是指不等到单例真正使用时在去创建，而是在类加载或者系统初始化就创建好。懒汉模式中单例要等到第一次使用时才创建。 饿汉模式最简单的实现：  12345class Singleton&amp;#123;private static Singleton instance = new Singleton();privat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java单例模式">
+<meta property="og:url" content="http://yoursite.com/2017/08/15/Java单例模式/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 实现单例模式 饿汉模式和懒汉模式单例模式根据实例化时机分为饿汉模式和懒汉模式。饿汉模式，是指不等到单例真正使用时在去创建，而是在类加载或者系统初始化就创建好。懒汉模式中单例要等到第一次使用时才创建。 饿汉模式最简单的实现：  12345class Singleton&amp;#123;private static Singleton instance = new Singleton();privat">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-01-23T04:23:47.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java单例模式">
+<meta name="twitter:description" content="1. 实现单例模式 饿汉模式和懒汉模式单例模式根据实例化时机分为饿汉模式和懒汉模式。饿汉模式，是指不等到单例真正使用时在去创建，而是在类加载或者系统初始化就创建好。懒汉模式中单例要等到第一次使用时才创建。 饿汉模式最简单的实现：  12345class Singleton&amp;#123;private static Singleton instance = new Singleton();privat">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2017/08/15/Java单例模式/"/>
+
+
+
+
+
+  <title>Java单例模式 | Hexo</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/08/15/Java单例模式/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Java单例模式</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-15T12:00:09+08:00">
+                2017-08-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1-实现单例模式"><a href="#1-实现单例模式" class="headerlink" title="1. 实现单例模式"></a>1. 实现单例模式</h2><ol>
+<li>饿汉模式和懒汉模式<br>单例模式根据实例化时机分为饿汉模式和懒汉模式。<br>饿汉模式，是指不等到单例真正使用时在去创建，而是在类加载或者系统初始化就创建好。<br>懒汉模式中单例要等到第一次使用时才创建。</li>
+<li><p>饿汉模式<br><strong>最简单的实现</strong>：</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">class Singleton&#123;</span><br><span class="line">private static Singleton instance = new Singleton();</span><br><span class="line">private Singleton()&#123;&#125;;</span><br><span class="line">public static Singleton getInstance()&#123;return instance;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面是一种线程安全的实现方式，因为instance是类静态成员，会在类加载并初始化时创建，因此可以保证即便是不同线程也会获得同一份实例（这句话在有些情况下并不正确，比如通过序列化，反射的方式还是能够创建多个实例出来）。</p>
+</li>
+<li><p>懒汉模式</p>
+<p>相对于1中在加载的时候就创建，另一种则是在首次使用时创建，比如下面这种方式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">class Singleton&#123;</span><br><span class="line">	priavte static Singleton instance = null;</span><br><span class="line">	private Singleton()&#123;&#125;;</span><br><span class="line">	public static Singleton getInstance()&#123;</span><br><span class="line">		if(null == instance)&#123;</span><br><span class="line">			instance = new Singleton();</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>   上面的这种形式，在首次调用getInstance时才会创建单例，但是它有一个问题就是，在多线程的情况下有可能会创建出多个实例化对象出来：比如线程1和线程2同时判断null ＝＝ instance为true，结果进入下一步两个线程就创建两个instance出来。当然这种方式通过加锁或则使用synchronize关键字的方式就可以避免了。这里不展示对整个getInstance方法加锁的实现，而是展示另一种方式：</p>
+<p>   <strong>3.1 两次判断</strong>，代码如下：</p>
+   <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">class Singleton&#123;</span><br><span class="line">	priavte static volatile Singleton instance = null;</span><br><span class="line">	private Singleton()&#123;&#125;;</span><br><span class="line">	public static Singleton getInstance()&#123;</span><br><span class="line">		if(null == instance)&#123;</span><br><span class="line">		 synchronize(Singleton.class)&#123;</span><br><span class="line">		 	if(null == instance)&#123;</span><br><span class="line">		 		instance = new Singleton();</span><br><span class="line">		 	&#125;</span><br><span class="line">		 &#125;</span><br><span class="line">		&#125;</span><br><span class="line">		return instance;</span><br><span class="line">	&#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>   比起对整个getInstance方法加锁，两次判断的方式可以避免一些不必要的加锁开销。</p>
+<p>   同时volatile关键字十分必要，多核环境下，多线程分布在多个核上，每个核心拥有各自的cache，读取数据总会尝试从cache读取。那就意味着<code>instance = new Singleton();</code>可能不会立即被运行在其他核心上的线程所知，导致即便instance更新后，其他线程cache中instance依然是null。volatile关键字保存每次更新都会更新到内存，同时保存其他核心上该缓存项失效，需要从内存读取。</p>
+<p>   <strong>3.2 内部类实现延迟加载</strong><br>上面两次判断的方法依然是通过加锁的方式来保证多线程情况下的创建单一实例，回顾1的实现中，保证只有一个实例是通过jvm只初始化一次static类成员这一机制实现的，但是1中在Singleton类加载的时候就会实例化静态成员instance，这可不是我们想要的首次使用创建这一目的。为了达到这一目的，我们可以借助内部类的方式实现，下面是代码实现：</p>
+   <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">class Singleton&#123;</span><br><span class="line">	private Singleton()&#123;&#125;;</span><br><span class="line">	</span><br><span class="line">	private static class SingletonHolder&#123;</span><br><span class="line">		priavte static Singleton instance = new Singleton(); </span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	public static Singleton getInstance()&#123;return SingletonHolder.instance;&#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>   jvm加载Singleton时并不会加载其SingletonHolder，因此instance就不会被早早的创建，直到调用getInstance方法时才回加载SingletonHolder，而instance是其静态成员，jvm保证了它只此一份。</p>
+<p><strong>附：关于类的加载时机</strong><br>「深入理解java虚拟机」一书中有介绍过类什么时候被初始化：</p>
+<ol>
+<li>创建类的实例时</li>
+<li>使用Class.forName时</li>
+<li>访问类的静态成员</li>
+<li>调用类的静态方法</li>
+<li>子类初始化时，父类也会初始化</li>
+</ol>
+<h2 id="2-实现单例模式的问题"><a href="#2-实现单例模式的问题" class="headerlink" title="2.实现单例模式的问题"></a>2.实现单例模式的问题</h2><p>在java中创建一个对象，我们可以通过：new，clone，序列化，反射。上面单例模式的实现我们通过将构造函数私有化使得不能通过new来创建对象，但是其他的手段依然可以，下面举例说明：</p>
+<ol>
+<li><p>反射<br>通过反射我们可以访问类的私有构造函授，测试代码如下（单例代码见上面1）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">public class TestSingleton &#123;</span><br><span class="line"> public static void main(String args[])&#123;</span><br><span class="line">     try &#123;</span><br><span class="line">         Constructor cons = Singleton.class.getDeclaredConstructor();</span><br><span class="line">         cons.setAccessible(true);</span><br><span class="line">         Singleton instance1 = Singleton.getInstance();</span><br><span class="line">         Singleton instance2 = (Singleton)cons.newInstance();</span><br><span class="line"></span><br><span class="line">         System.out.println(&quot;instance1 == instance2 ?&quot;+(instance1 == instance2));</span><br><span class="line">     &#125; catch (Exception e) &#123;</span><br><span class="line">         e.printStackTrace();</span><br><span class="line">     &#125;</span><br><span class="line"> &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>   打印的结果如下：<br>  <code>instance1 == instance2 ? false</code><br>   instance1和instance2是不同对象，因此这就破坏了单例模式，网上提供解决反射带来的问题也十分简单，只需要修改构造函数，使得它第二次以及更多次的调用抛出异常，修改构造函数如下：</p>
+   <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">private static boolean flag = false;</span><br><span class="line">public Singleton()&#123;</span><br><span class="line">		if(false == flag)&#123;</span><br><span class="line">			flag = true;</span><br><span class="line">		&#125;else&#123;</span><br><span class="line">			 throw new Exception(...);</span><br><span class="line">		｝</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>   不过java的反射有点没节操，你还是可以修改flag值，我的天。<br>   在《effective java》里提供一种解决之道，可以无视反射，那就是通过枚举来实现。像下面这样：</p>
+   <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public enum Singleton3 &#123;</span><br><span class="line"> INSTANCE;</span><br><span class="line"></span><br><span class="line"> public void applaud()&#123;</span><br><span class="line">     System.out.println(&quot;haha, go home,reflection!&quot;);</span><br><span class="line"> &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>   没有构造函数了。。。(跟jvm初始化枚举变量的方式有关系，当你再试图通过反射获取构造函数会抛出异常)，所以再尝试通过反射获得构造函数，就会抛异常。</p>
+<ol>
+<li><p>序列化的影响<br>不考虑枚举实现单例模式，如果Singleton实现了Serializable接口，那么如果我们将Singleton序列到一个对象中去，在反序列化出来，就会导致不同的实例，请看下面代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public class TestSingleton2 &#123;</span><br><span class="line"></span><br><span class="line"> public static void main(String []args)&#123;</span><br><span class="line">     try &#123;</span><br><span class="line">         Singleton instance = Singleton.getInstance();</span><br><span class="line"></span><br><span class="line">         //将instance序列化到文件singleton中.</span><br><span class="line">         FileOutputStream fos = new FileOutputStream(&quot;singleton&quot;);</span><br><span class="line">         ObjectOutputStream oos = new ObjectOutputStream(fos);</span><br><span class="line"></span><br><span class="line">         oos.writeObject(instance);</span><br><span class="line"></span><br><span class="line">         //从文件singleton中读出对象</span><br><span class="line">         FileInputStream fis = new FileInputStream(&quot;singleton&quot;);</span><br><span class="line">         ObjectInputStream ois = new ObjectInputStream(fis);</span><br><span class="line"></span><br><span class="line">         Singleton instance1 = (Singleton)ois.readObject();</span><br><span class="line"></span><br><span class="line">         System.out.println(&quot;instance == instance1 ? &quot; + (instance == instance1));</span><br><span class="line"></span><br><span class="line">     &#125; catch (Exception e) &#123;</span><br><span class="line">         e.printStackTrace();</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line"> &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>结果显示instance和instance1为两个实例。</p>
+<p>  序列化前后产生不同对象，解决方法也很简单，jvm在反序列化时，如果该类实现的下面方法：<br>  <code>private Object readResolve() throw IOException</code><br>  那么就会调用这个方法返回对象，以替换流中对象。因此可以在这个方法里返回Singleton的instance成员，如下：</p>
+   <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">private  Object readResolve() throws ObjectStreamException&#123;</span><br><span class="line">    return instance;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/07/22/JUC之ExecutorCompletionService/" rel="next" title="JUC之ExecutorCompletionService">
+                <i class="fa fa-chevron-left"></i> JUC之ExecutorCompletionService
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/15/Mybatis-foreach标签/" rel="prev" title="Mybatis foreach标签">
+                Mybatis foreach标签 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Li Weisheng</p>
+              <p class="site-description motion-element" itemprop="description">不积跬步，无以至千里</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">33</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-实现单例模式"><span class="nav-number">1.</span> <span class="nav-text">1. 实现单例模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-实现单例模式的问题"><span class="nav-number">2.</span> <span class="nav-text">2.实现单例模式的问题</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Li Weisheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
