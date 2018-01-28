@@ -232,162 +232,6 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/07/Spark-Streaming-2-JobScheduler、JobGenerator/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Li Weisheng">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/05/07/Spark-Streaming-2-JobScheduler、JobGenerator/" itemprop="url">Spark Streaming(2) - JobScheduler、JobGenerator</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-07T19:20:57+08:00">
-                2017-05-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p><em>本文基于Spark 2.11</em></p>
-<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1. 前言"></a>1. 前言</h1><p>Spark Streaming(1)中提到JobScheduler使用JobGenerator可以每隔一段时间根据DStream DAG创建出RDD DAG，并提交job，本文主要介绍JobScheduler的细节。</p>
-<h1 id="2-JobScheduler"><a href="#2-JobScheduler" class="headerlink" title="2. JobScheduler"></a>2. JobScheduler</h1><p>JobScheduler在StreamingContext调用start时启动，启动序列如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">StreamingContext#start</span><br><span class="line">       -&gt;JobScheduler#start</span><br><span class="line">             -&gt; ReceiverTracker#start</span><br><span class="line">                   -&gt;JobGenerator#start</span><br></pre></td></tr></table></figure></p>
-<p>JobScheduler有如下成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">private val jobSets: java.util.Map[Time, JobSet] = new ConcurrentHashMap[Time, JobSet]</span><br><span class="line"> private val numConcurrentJobs = ssc.conf.getInt(&quot;spark.streaming.concurrentJobs&quot;, 1)</span><br><span class="line"> private val jobExecutor =</span><br><span class="line">   ThreadUtils.newDaemonFixedThreadPool(numConcurrentJobs, &quot;streaming-job-executor&quot;)</span><br><span class="line"> private val jobGenerator = new JobGenerator(this)</span><br><span class="line"></span><br><span class="line"> // These two are created only when scheduler starts.</span><br><span class="line"> // eventLoop not being null means the scheduler has been started and not stopped</span><br><span class="line"> var receiverTracker: ReceiverTracker = null</span><br><span class="line"> // A tracker to track all the input stream information as well as processed record number</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>jobSets。<br>job生成时间到jobs的映射，JobGenerator调用DStreamGraph为持有的每一个DStream DAG生成一个job返回给JobGenerator，JobGenerator将时间以及生成的jobs反馈给Jobscheudler，保存在jobSets里。JobGenerator并没有提交job，job是由JobScheudler提交的。</li>
-<li>numConcurrentJobs<br>控制同时能运行的job数量。</li>
-<li>jobExecutor<br>线程池，由numConccurrentJobs控制线程数量，jobExecutor里提交job并等待结果。由于等待结果是一个阻塞操作，所以一个线程同时只能提交一个job</li>
-<li>jobGenerator<br>JobScheduler委托用来生成job</li>
-<li>receiverTracker，JobScheduler启动，接收Receiver上报的数据batch信息。</li>
-</ol>
-<p>#3. JobGenerator生成job<br>上面说到JobScheduler委托JobGenerator生成job，<br>下面是JobGenerator的核心成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">private val timer = new RecurringTimer(clock, ssc.graph.batchDuration.milliseconds,</span><br><span class="line">    longTime =&gt; eventLoop.post(GenerateJobs(new Time(longTime))), &quot;JobGenerator&quot;)</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line">  private var eventLoop: EventLoop[JobGeneratorEvent] = null</span><br><span class="line"></span><br><span class="line">  // last batch whose completion,checkpointing and metadata cleanup has been completed</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>timer<br>定时器，JobGenerator定时生成job，时间间隔batchDuration就是创建StreamingContext是传入的，这个timer每隔timeDuration时间网eventLoop中发送一条生成job的消息。</li>
-<li>eventLoop<br>一直运行，接收消息，做出处理。接受的消息类型有:<ul>
-<li>GenerateJobs, 使用DSteamGraph生成job</li>
-<li>DoCheckpoint，提交新的job去做checkpoint</li>
-<li>ClearCheckpointData,DoCheckpoint都是在job完成后清楚信息的</li>
-</ul>
-</li>
-</ol>
-<p><strong>生成job</strong><br>timer定时器每隔batchDuration往eventLoop发送GenerateJob事件生成job，下面是eventLoop时间主循环中处理GenerateJob事件调用如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">eventLoop#processEvent</span><br><span class="line">   --&gt; jobGenerator#generateJobs</span><br></pre></td></tr></table></figure></p>
-<p>下面是JobGenerator的generateJobs<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">private def generateJobs(time: Time) &#123;</span><br><span class="line">   // Checkpoint all RDDs marked for checkpointing to ensure their lineages are</span><br><span class="line">   // truncated periodically. Otherwise, we may run into stack overflows (SPARK-6847).</span><br><span class="line">   ssc.sparkContext.setLocalProperty(RDD.CHECKPOINT_ALL_MARKED_ANCESTORS, &quot;true&quot;)</span><br><span class="line">   Try &#123;</span><br><span class="line">     jobScheduler.receiverTracker.allocateBlocksToBatch(time) // allocate received blocks to batch</span><br><span class="line">     graph.generateJobs(time) // generate jobs using allocated block</span><br><span class="line">   &#125; match &#123;</span><br><span class="line">     case Success(jobs) =&gt;</span><br><span class="line">       val streamIdToInputInfos = jobScheduler.inputInfoTracker.getInfo(time)</span><br><span class="line">       //将jobs反馈给JobScheudler，等待调度</span><br><span class="line">       jobScheduler.submitJobSet(JobSet(time, jobs, streamIdToInputInfos))</span><br><span class="line">     case Failure(e) =&gt;</span><br><span class="line">       jobScheduler.reportError(&quot;Error generating jobs for time &quot; + time, e)</span><br><span class="line">       PythonDStream.stopStreamingContextIfPythonProcessIsDead(e)</span><br><span class="line">   &#125;</span><br><span class="line">   eventLoop.post(DoCheckpoint(time, clearCheckpointDataLater = false))</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
-<ol>
-<li>receiverTracker.allocateBlocksToBatch(time)根据当前时间time，从已经汇报的数据中生成数据块，后续根据DStream生成RDD的数据就是根据time检索到本次生成的数据块</li>
-<li>graph.generateJobs生成jobs</li>
-<li>jobScheduler.submitJobSet,反馈给Jobscheudler等待人物调度</li>
-<li>eventLoop.post，创建job做checkpoint</li>
-</ol>
-<p>第二步创建中创建job有如下调用序列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">DStreamGraph#generateJobs</span><br><span class="line">    -&gt;DStream#generateJob</span><br><span class="line"></span><br><span class="line">//DStream#generateJob</span><br><span class="line">private[streaming] def generateJob(time: Time): Option[Job] = &#123;</span><br><span class="line">    // 将DStream转换成RDD</span><br><span class="line">    getOrCompute(time) match &#123;</span><br><span class="line">      case Some(rdd) =&gt;</span><br><span class="line">        // 此处创建了函数，函数里基于当前RDD提交了job</span><br><span class="line">        // JobScheduler在jobExecutor线程池中调度job时，该函数会执行</span><br><span class="line">        val jobFunc = () =&gt; &#123;</span><br><span class="line">          val emptyFunc = &#123; (iterator: Iterator[T]) =&gt; &#123;&#125; &#125;</span><br><span class="line">          context.sparkContext.runJob(rdd, emptyFunc)</span><br><span class="line">        &#125;</span><br><span class="line">        Some(new Job(time, jobFunc))</span><br><span class="line">      case None =&gt; None</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<p>使用time，以及一个jobFunc的函数创建Job，jobFunc在调度时执行。</p>
-<h1 id="4-JobScheduler调度job"><a href="#4-JobScheduler调度job" class="headerlink" title="4. JobScheduler调度job"></a>4. JobScheduler调度job</h1><p>3中面提到JobGenerator生成jobs并将生成的job反馈给JobScheduler，2中说到到JobScheduler使用jobExecutor调度job</p>
-<p>下面是JobScheduler的submitJobSet方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">def submitJobSet(jobSet: JobSet) &#123;</span><br><span class="line">    if (jobSet.jobs.isEmpty) &#123;</span><br><span class="line">      logInfo(&quot;No jobs added for time &quot; + jobSet.time)</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">      listenerBus.post(StreamingListenerBatchSubmitted(jobSet.toBatchInfo))</span><br><span class="line">      jobSets.put(jobSet.time, jobSet）</span><br><span class="line">      jobSet.jobs.foreach(job =&gt; jobExecutor.execute(new JobHandler(job)))</span><br><span class="line">      logInfo(&quot;Added jobs for time &quot; + jobSet.time)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
-<p>上面代码中<code>jobSet.jobs.foreach(job =&gt; jobExecutor.execute(new JobHandler(job)))</code>对JobGenerator传递过来的每一个job包装成JobHandler，然后在jobExecutor线程池中调度执行。</p>
-<p>JobHandler实现了Runnable接口，是的能在线程池中运行，它的run方法如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">def run() &#123;</span><br><span class="line">     val oldProps = ssc.sparkContext.getLocalProperties</span><br><span class="line">     try &#123;</span><br><span class="line">       ssc.sparkContext.setLocalProperties(SerializationUtils.clone(ssc.savedProperties.get()))</span><br><span class="line">       val formattedTime = UIUtils.formatBatchTime(</span><br><span class="line">         job.time.milliseconds, ssc.graph.batchDuration.milliseconds, showYYYYMMSS = false)</span><br><span class="line">       val batchUrl = s&quot;/streaming/batch/?id=$&#123;job.time.milliseconds&#125;&quot;</span><br><span class="line">       val batchLinkText = s&quot;[output operation $&#123;job.outputOpId&#125;, batch time $&#123;formattedTime&#125;]&quot;</span><br><span class="line"></span><br><span class="line">       ssc.sc.setJobDescription(</span><br><span class="line">         s&quot;&quot;&quot;Streaming job from &lt;a href=&quot;$batchUrl&quot;&gt;$batchLinkText&lt;/a&gt;&quot;&quot;&quot;)</span><br><span class="line">       ssc.sc.setLocalProperty(BATCH_TIME_PROPERTY_KEY, job.time.milliseconds.toString)</span><br><span class="line">       ssc.sc.setLocalProperty(OUTPUT_OP_ID_PROPERTY_KEY, job.outputOpId.toString)</span><br><span class="line">       // Checkpoint all RDDs marked for checkpointing to ensure their lineages are</span><br><span class="line">       // truncated periodically. Otherwise, we may run into stack overflows (SPARK-6847).</span><br><span class="line">       ssc.sparkContext.setLocalProperty(RDD.CHECKPOINT_ALL_MARKED_ANCESTORS, &quot;true&quot;)</span><br><span class="line"></span><br><span class="line">       // We need to assign `eventLoop` to a temp variable. Otherwise, because</span><br><span class="line">       // `JobScheduler.stop(false)` may set `eventLoop` to null when this method is running, then</span><br><span class="line">       // it&apos;s possible that when `post` is called, `eventLoop` happens to null.</span><br><span class="line">       var _eventLoop = eventLoop</span><br><span class="line">       if (_eventLoop != null) &#123;</span><br><span class="line">         _eventLoop.post(JobStarted(job, clock.getTimeMillis()))</span><br><span class="line">         // Disable checks for existing output directories in jobs launched by the streaming</span><br><span class="line">         // scheduler, since we may need to write output to an existing directory during checkpoint</span><br><span class="line">         // recovery; see SPARK-4835 for more details.</span><br><span class="line">         SparkHadoopWriterUtils.disableOutputSpecValidation.withValue(true) &#123;</span><br><span class="line">           job.run()</span><br><span class="line">         &#125;</span><br><span class="line">         _eventLoop = eventLoop</span><br><span class="line">         if (_eventLoop != null) &#123;</span><br><span class="line">           _eventLoop.post(JobCompleted(job, clock.getTimeMillis()))</span><br><span class="line">         &#125;</span><br><span class="line">       &#125; else &#123;</span><br><span class="line">         // JobScheduler has been stopped.</span><br><span class="line">       &#125;</span><br><span class="line">     &#125; finally &#123;</span><br><span class="line">       ssc.sparkContext.setLocalProperties(oldProps)</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>
-<p>调用Job#run方法，run方法中执行jobFunc完成job的提交。</p>
-<p><strong>job 并行度的控制</strong><br>JobScheduler的成员numConcurrentJobs控制同时能有多少stream job在运行，numConcurrentJobs通过<code>spark.streaming.concurrentJobs</code>配置项获取，默认为1. numCOncurrentJobs控制jobExecutor线程池中线程的数量从而实现控制同时运行的JobHandler数量（而一个JobHandler封装一个job）。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/06/Spark-Streaming-1-基本原理/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -792,6 +636,223 @@
 <li>foreach，对每一个待归并的文件，每次取出其靠前的key相同的连续记录，放到小根堆</li>
 </ol>
 <p>接下来是其next方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">override def next(): (K, C) = &#123;</span><br><span class="line">      if (mergeHeap.isEmpty) &#123;</span><br><span class="line">        throw new NoSuchElementException</span><br><span class="line">      &#125;</span><br><span class="line">      // Select a key from the StreamBuffer that holds the lowest key hash</span><br><span class="line">      //从堆中取出key hash最小的(key, value)序列</span><br><span class="line">      val minBuffer = mergeHeap.dequeue()</span><br><span class="line">      val minPairs = minBuffer.pairs</span><br><span class="line">      val minHash = minBuffer.minKeyHash</span><br><span class="line">      // 从(key,value)序列中取下第一个（key，value）记录</span><br><span class="line">      val minPair = removeFromBuffer(minPairs, 0)</span><br><span class="line">      val minKey = minPair._1</span><br><span class="line">      var minCombiner = minPair._2</span><br><span class="line">      assert(hashKey(minPair) == minHash)</span><br><span class="line"></span><br><span class="line">      </span><br><span class="line">      val mergedBuffers = ArrayBuffer[StreamBuffer](minBuffer)</span><br><span class="line">      // 判断堆中当前key hash最小的和刚刚取出来的第一个记录hash是</span><br><span class="line">      //不是一样，是一样则有可能是同一个key，但也可能不是同一个</span><br><span class="line">      // key，因为在inputStreams.foreach中是使用hashcode判断key</span><br><span class="line">   // 相等的，和reducer端则是使用==判断。</span><br><span class="line">      while (mergeHeap.nonEmpty &amp;&amp; mergeHeap.head.minKeyHash == minHash) &#123;</span><br><span class="line">       </span><br><span class="line">        val newBuffer = mergeHeap.dequeue()</span><br><span class="line">        // 可能需要合并，newBuffer中存放的是key的hashCode相等</span><br><span class="line">       // 的序列，但是key1==minKey不一定成立，所以可能只会合并</span><br><span class="line">       // minBuffer和newBuffer中的一部分数据</span><br><span class="line">        minCombiner = mergeIfKeyExists(minKey, minCombiner, newBuffer)</span><br><span class="line">        mergedBuffers += newBuffer</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      </span><br><span class="line">    // 前面说到buffer中数据可能只会有一部分合并，对于没有合并的</span><br><span class="line">   // 还需要重新添加到堆中，等待下一轮合并</span><br><span class="line">      mergedBuffers.foreach &#123; buffer =&gt;</span><br><span class="line">        if (buffer.isEmpty) &#123;</span><br><span class="line">         // minBuffer和newBuffer全部合并了，那可以从迭代器中读区下.    </span><br><span class="line">// 一批key的hashcode一样的连续记录了</span><br><span class="line">          readNextHashCode(buffer.iterator, buffer.pairs)</span><br><span class="line">        &#125;</span><br><span class="line">        if (!buffer.isEmpty) &#123;</span><br><span class="line">          mergeHeap.enqueue(buffer)</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      (minKey, minCombiner)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/05/01/Spark-RPC的实现/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Li Weisheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/05/01/Spark-RPC的实现/" itemprop="url">Spark RPC的实现</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-01T10:28:40+08:00">
+                2017-05-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p><em>本文基于spark源码2.11</em></p>
+<h1 id="1-概要"><a href="#1-概要" class="headerlink" title="1. 概要"></a>1. 概要</h1><p>spark中网络通信无处不在，例如</p>
+<ul>
+<li>driver和master的通信，比如driver会想master发送RegisterApplication消息</li>
+<li>master和worker的通信，比如worker会向master上报worker上运行Executor信息</li>
+<li>executor和driver的的通信，executor运行在worker上，spark的tasks被分发到运行在各个executor中，executor需要通过向driver发送任务运行结果。</li>
+<li>worker和worker的通信，task运行期间需要从其他地方fetch数据，这些数据是由运行在其他worker上的executor上的task产生，因此需要到worker上fetch数据</li>
+</ul>
+<p>总结起来通信主要存在两个方面：</p>
+<ol>
+<li>汇集信息，例如task变化信息，executor状态变化信息。</li>
+<li>传输数据，spark shuffle（也就是reduce从上游map的输出中汇集输入数据）阶段存在大量的数据传输。</li>
+</ol>
+<p>在spark中这两种采用了不同的实现方式，对于 1 spark基于netty实现了简单的rpc服务框架，对于 2 同样基于netty实现了数据传输服务。</p>
+<h2 id="2-基于netty的rpc实现"><a href="#2-基于netty的rpc实现" class="headerlink" title="2. 基于netty的rpc实现"></a>2. 基于netty的rpc实现</h2><p>rpc两端称为endpoint，提供服务的一端需要实现RpcEndpoint接口，该接口主要下面两个方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">def receive: PartialFunction[Any, Unit] = &#123;</span><br><span class="line">   case _ =&gt; throw new SparkException(self + &quot; does not implement &apos;receive&apos;&quot;)</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = &#123;</span><br><span class="line">   case _ =&gt; context.sendFailure(new SparkException(self + &quot; won&apos;t reply anything&quot;))</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>实现这两个方法，完成对消息的处理，这辆个方法不同之处在于receiveAndReply可以通过context向服务请求这回复。实现这个接口之后，实例化，然后注册实例。请求服务的一方需要注册的只是EndpointRef，通过EndpointRef发起服务请求。</p>
+<p>spark中需要提供rpc服务的地方主要有：</p>
+<ol>
+<li>MapoutTracker，MapoutTracker有两个实现类：MapoutTrackerMaster和MapoutTrackerWorker。前者运行在Driver端，后者运行在每一个executor上，两者通信用来保存ShuffleMapTask的map输出数据信息。MapoutTrackerMaster持有MapoutTrackerMasterEndpoint接收信息，MapoutTrackerWorker持有EndpointRef回报map out信息</li>
+<li>BlockManager，BlockManager负责spark运行期间的数据信息的收集以及存与取，BlockManager运行在Driver和每一个executor上，BlockManager持有BlockManagerMaster，在Driver上BlockManagerMaster持有BlockManagerMasterEndpoint，executor上持有EndpointRef，executor调用blockmanager汇报信息，实际上是通过endpointref汇集到driver上。</li>
+<li>StandaloneAppClient，ScheduleBackend持有它（standalone模式下，实例话为CoarseGrainedSchedulerBackend），在standalone部署模式下，driver通过它来与master通信</li>
+<li>DriverEndpoint，ScheduleBackend（standalone模式下，实例话为CoarseGrainedSchedulerBackend）用来与executor通信，收集executor信息，收集task变化信息</li>
+<li>Worker,Master，维持心跳，运行executor，运行task</li>
+<li>CoarseGrainedExecutorBackend，每一个executor对应一个，和driver通信运行或取消任务等</li>
+</ol>
+<h3 id="2-1-注册服务"><a href="#2-1-注册服务" class="headerlink" title="2.1 注册服务"></a>2.1 注册服务</h3><p>下面是SparkEnv在初始化过程中注册MapMapOutputTrackerMasterEndpoint的代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">def registerOrLookupEndpoint(</span><br><span class="line">        name: String, endpointCreator: =&gt; RpcEndpoint):</span><br><span class="line">      RpcEndpointRef = &#123;</span><br><span class="line">      if (isDriver) &#123;</span><br><span class="line">        logInfo(&quot;Registering &quot; + name)</span><br><span class="line">        rpcEnv.setupEndpoint(name, endpointCreator)</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        RpcUtils.makeDriverRef(name, conf, rpcEnv)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"> </span><br><span class="line">mapOutputTracker.trackerEndpoint = </span><br><span class="line">      registerOrLookupEndpoint(</span><br><span class="line">             MapOutputTracker.ENDPOINT_NAME,</span><br><span class="line">             new MapOutputTrackerMasterEndpoint(</span><br><span class="line">                     rpcEnv, </span><br><span class="line">                     mapOutputTracker.asInstanceOf[MapOutputTrackerMaster], conf))</span><br></pre></td></tr></table></figure></p>
+<p>调用<code>registerOrLookupEndpoint</code>完成注册，并且返回一个endpointref，通过endpointref发送请求。registerOrLookupEndpoint接收一个参数name，用来标识一个rpc服务。</p>
+<p>registerOrLookupEndpoint在driver端和worker上有不同的处理方式，在driver端创建出endpoint的实例，并注册该实例提供服务，在非driver端则创建一个endpointref返回供rpc请求端发送请求时使用。下面是RpcEndpointRef类的核心属性和方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">private[spark] abstract class RpcEndpointRef(conf: SparkConf)</span><br><span class="line">  def address: RpcAddress</span><br><span class="line">  def name: String</span><br><span class="line">  def send(message: Any): Unit</span><br><span class="line">  def ask[T: ClassTag](message: Any, timeout: RpcTimeout): Future[T]</span><br><span class="line">  def askSync[T: ClassTag](message: Any, timeout: RpcTimeout): T</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>name返回的就是在注册rpc服务时的提供的名字。</li>
+<li>address 是服务提供方的host,port。</li>
+<li>send，ask方法用来发送请求，区别是send没有不需要response,ask则需要。</li>
+</ul>
+<p>只看在driver上是如何注册服务的，调用rpcEnv.setupEndpoint注册服务，这里的rpcEnv实际上是实例NettyRpcEnv。</p>
+<p>下面的图是NettyRpcEnv一张结构图：</p>
+<p><img src="/image/spark/spark-rpc.png" alt="spark-rpc.png"></p>
+<h4 id="2-1-1-服务端"><a href="#2-1-1-服务端" class="headerlink" title="2.1.1 服务端"></a>2.1.1 服务端</h4><p>创建SparkEnv时，调用<code>val rpcEnv = RpcEnv.create(...)</code>,这个方法调用NettyRpcEnvFactory#create创建NettyRpcEnv的实例。create方法判断如果实在driver端，则创建TransportServer，调用链路是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NettyRpcEnvFactory#create#创建nettyrpcenv -&gt; NettyRpcEnv#startServer -&gt; </span><br><span class="line">TransportContext#createServer()#创建TransportServer监听端口提供服务</span><br></pre></td></tr></table></figure>
+<p><strong>NettyRpcEnv</strong><br>SparkEnv持有rpcEnv是NettyRpcEnv的实例，下面的NettyRpcEnv的核心的属性方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">private val dispatcher: Dispatcher = new Dispatcher(this)</span><br><span class="line"></span><br><span class="line">private val streamManager = new NettyStreamManager(this)</span><br><span class="line"></span><br><span class="line">private val transportContext = new TransportContext(transportConf,</span><br><span class="line">    new NettyRpcHandler(dispatcher, this, streamManager))</span><br><span class="line"></span><br><span class="line">private val outboxes = new ConcurrentHashMap[RpcAddress, Outbox]()</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>dispatcher,  endpoint服务注册到dispatcher上，请求服务时指定name请求服务，dispatcher根据name将消息转发到对应的endpoint。</li>
+<li>transportContext，用来创建TransportServer监听端口接收消息。</li>
+<li>outboxes，每一个endpointref都包装了RpcAddress表示endpoint地址，上图中通过send/ask请求某个endpoint的服务时，消息都会先发送到Outbox中，outboxes缓存了一个endpoint到其outbox的映射，方便查找，下面代码是Outbox类的一些成员。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">private[netty] class Outbox(nettyEnv: NettyRpcEnv, val address: RpcAddress) &#123;</span><br><span class="line"> // 使用队列保存要发送出去的消息</span><br><span class="line">  private val messages = new java.util.LinkedList[OutboxMessage]</span><br><span class="line">// 本次发送者client，TransportClient下一节介绍</span><br><span class="line">  private var client: TransportClient = null</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong> Dispatcher</strong><br>endpointref注册在dispatcher上， TransportServer端最后的NettyRpcHandler接收到处理完消息后通过dispathcer转发到具体的endpoint上。下面是Dispatcher类：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">private[netty] class Dispatcher(nettyEnv: NettyRpcEnv) extends Logging &#123;</span><br><span class="line"></span><br><span class="line">  private class EndpointData(</span><br><span class="line">      val name: String,</span><br><span class="line">      val endpoint: RpcEndpoint,</span><br><span class="line">      val ref: NettyRpcEndpointRef) &#123;</span><br><span class="line">    val inbox = new Inbox(ref, endpoint)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  private val endpoints: ConcurrentMap[String, EndpointData] =</span><br><span class="line">    new ConcurrentHashMap[String, EndpointData]</span><br><span class="line">  private val endpointRefs: ConcurrentMap[RpcEndpoint, RpcEndpointRef] =</span><br><span class="line">    new ConcurrentHashMap[RpcEndpoint, RpcEndpointRef]</span><br><span class="line"></span><br><span class="line">  // Track the receivers whose inboxes may contain messages.</span><br><span class="line">  private val receivers = new LinkedBlockingQueue[EndpointData]</span><br></pre></td></tr></table></figure>
+<ol>
+<li>endpoints是name（注册时提供的服务名称）到endpointdata的映<br>射。</li>
+<li>Inbox, 前面的图中TransportServer端接收到的消息，dispatcher根据name从endpoints中检索到之后放到对应的inbox中</li>
+<li>receivers，dispatcher接收到数据，dispatch到各自的inbox中之后，并不会马上调用endpoint处理，而是在另外一个线程MessageLoop中专门处理，receivers保存了收到消息的endpoint所属的endpointdata，MessageLoop即根据receivers中的成员知道要调用哪些endpoint的处理逻辑。</li>
+</ol>
+<p><strong> TransportServer</strong><br>TranportContext#createServer创建了一个基于Netty的server监听端口提供服务. 下面是创建TransportServer的过程：</p>
+<ol>
+<li>transportContext的创建，这在NettyRpcEnv创建过程中创建，创建方式：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">private val transportContext = new TransportContext(transportConf,</span><br><span class="line">  new NettyRpcHandler(dispatcher, this, streamManager))</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>并使用了NettyRpcHandler的实例作参数，NettyRpcHandler是服务端管道最后一个handler，也就是在其handle方法中调用dispatcher完成消息转发</p>
+<ol>
+<li>调用 <code>transportContext#createServer(bindAddress, port, bootstraps)</code> ，bindAddress和port即rpc监听的地址和端口，这两个是由配置文件中<code>spark.driver.bindAddress</code>和<code>spark.driver.port</code>指定</li>
+<li>2中createServer最终调用TransportServer.init()初始化一个TransportServer，下面是init方法<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">private void init(String hostToBind, int portToBind) &#123;</span><br><span class="line"></span><br><span class="line">    IOMode ioMode = IOMode.valueOf(conf.ioMode());</span><br><span class="line">    EventLoopGroup bossGroup =</span><br><span class="line">      NettyUtils.createEventLoop(ioMode, conf.serverThreads(), conf.getModuleName() + &quot;-server&quot;);</span><br><span class="line">    EventLoopGroup workerGroup = bossGroup;</span><br><span class="line"></span><br><span class="line">    bootstrap = new ServerBootstrap()</span><br><span class="line">      .group(bossGroup, workerGroup)</span><br><span class="line">      .channel(NettyUtils.getServerChannelClass(ioMode))</span><br><span class="line">      .option(ChannelOption.ALLOCATOR, allocator)</span><br><span class="line">      .childOption(ChannelOption.ALLOCATOR, allocator);</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line">    bootstrap.childHandler(new ChannelInitializer&lt;SocketChannel&gt;() &#123;</span><br><span class="line">      @Override</span><br><span class="line">      protected void initChannel(SocketChannel ch) throws Exception &#123;</span><br><span class="line">        RpcHandler rpcHandler = appRpcHandler;</span><br><span class="line">        for (TransportServerBootstrap bootstrap : bootstraps) &#123;</span><br><span class="line">          rpcHandler = bootstrap.doBootstrap(ch, rpcHandler);</span><br><span class="line">        &#125;</span><br><span class="line">        context.initializePipeline(ch, rpcHandler);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    InetSocketAddress address = hostToBind == null ?</span><br><span class="line">        new InetSocketAddress(portToBind): new InetSocketAddress(hostToBind, portToBind);</span><br><span class="line">    channelFuture = bootstrap.bind(address);</span><br><span class="line">    channelFuture.syncUninterruptibly();</span><br><span class="line"></span><br><span class="line">    port = ((InetSocketAddress) channelFuture.channel().localAddress()).getPort();</span><br><span class="line">    logger.debug(&quot;Shuffle server started on port: &#123;&#125;&quot;, port);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>这是netty创建服务端的用法，每一个client的链接被看作一个channel，channel上可以注册多个handler，消息从channel流进流出，被一个个注册在channel上的handler处理，到达用户层面或者被发送至网络。bootstrap.childHandler方法，就是用来初始化一个新的client连接生成的channel。</p>
+<p> <code>context.initializePipeline(ch, rpcHandler);</code>（此处的rpcHandler就是NettyRpcHandler）对channel进行初始化，也就是注册handler，下面是initializePipeline的代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">public TransportChannelHandler initializePipeline(</span><br><span class="line">      SocketChannel channel,</span><br><span class="line">      RpcHandler channelRpcHandler) &#123;</span><br><span class="line">    try &#123;</span><br><span class="line">      TransportChannelHandler channelHandler = createChannelHandler(channel, channelRpcHandler);</span><br><span class="line">      channel.pipeline()</span><br><span class="line">        .addLast(&quot;encoder&quot;, ENCODER)</span><br><span class="line">        .addLast(TransportFrameDecoder.HANDLER_NAME, NettyUtils.createFrameDecoder())</span><br><span class="line">        .addLast(&quot;decoder&quot;, DECODER)</span><br><span class="line">        .addLast(&quot;idleStateHandler&quot;, new IdleStateHandler(0, 0, conf.connectionTimeoutMs() / 1000))</span><br><span class="line">        // NOTE: Chunks are currently guaranteed to be returned in the order of request, but this</span><br><span class="line">        // would require more logic to guarantee if this were not part of the same event loop.</span><br><span class="line">        .addLast(&quot;handler&quot;, channelHandler);</span><br><span class="line">      return channelHandler;</span><br><span class="line">    &#125; catch (RuntimeException e) &#123;</span><br><span class="line">      logger.error(&quot;Error while initializing Netty pipeline&quot;, e);</span><br><span class="line">      throw e;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>注册ENCODER，DECODER，channelHandler（包含前图中TransportRequestHandler和TransportReponseHandler分别用来处理请求消息和回复消息）</p>
+<p><strong>  消息接收流程</strong><br>以<code>OneWayMessage</code>为例，这种消息不需要response。服务端接收到消息，经过如下处理步骤：</p>
+<ol>
+<li>由Decoder(MessageDecoder的实例)做decode处理，生成OneWayMessage</li>
+<li>交给TransportRequestHandler处理，这个handler直接交给rpcHandler#receive（NettyRpcHandler）处理</li>
+<li>NettyRpcHandler#receive调用    <code>dispatcher.postOneWayMessage(messageToDispatch)</code>，消息转到Dispatcher。</li>
+<li>Dispathcer#postOneWayMessage, 最终调用Dispatcher#postMessage,代码如下：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">private def postMessage(</span><br><span class="line">      endpointName: String,</span><br><span class="line">      message: InboxMessage,</span><br><span class="line">      callbackIfStopped: (Exception) =&gt; Unit): Unit = &#123;</span><br><span class="line">    val error = synchronized &#123;</span><br><span class="line">      // 根据请求的endpoint name找到endpoint</span><br><span class="line">      val data = endpoints.get(endpointName)</span><br><span class="line">      if (stopped) &#123;</span><br><span class="line">        Some(new RpcEnvStoppedException())</span><br><span class="line">      &#125; else if (data == null) &#123;</span><br><span class="line">        Some(new SparkException(s&quot;Could not find $endpointName.&quot;))</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">       // 向对应的endpoint的inbox中放入消息</span><br><span class="line">        data.inbox.post(message)</span><br><span class="line">      // 有消息待处理的endpoint</span><br><span class="line">        receivers.offer(data)</span><br><span class="line">        None</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    // We don&apos;t need to call `onStop` in the `synchronized` block</span><br><span class="line">    error.foreach(callbackIfStopped)</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>上述代码只是向inbox中放入消息，然后在receiver中放入接收到消息待处理的endpoint，并没有处理消息，也就是调用endpoint的receive/receiveAndReply方法。在哪里处理的？Dispatcher是通过另启动的线程池来移步处理消息的，如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">private val threadpool: ThreadPoolExecutor = &#123;</span><br><span class="line">    val numThreads = nettyEnv.conf.getInt(&quot;spark.rpc.netty.dispatcher.numThreads&quot;,</span><br><span class="line">      math.max(2, Runtime.getRuntime.availableProcessors()))</span><br><span class="line">    val pool = ThreadUtils.newDaemonFixedThreadPool(numThreads, &quot;dispatcher-event-loop&quot;)</span><br><span class="line">    for (i &lt;- 0 until numThreads) &#123;</span><br><span class="line">      pool.execute(new MessageLoop)</span><br><span class="line">    &#125;</span><br><span class="line">    pool</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  /** Message loop used for dispatching messages. */</span><br><span class="line">  private class MessageLoop extends Runnable &#123;</span><br><span class="line">    override def run(): Unit = &#123;</span><br><span class="line">      try &#123;</span><br><span class="line">        while (true) &#123;</span><br><span class="line">          try &#123;</span><br><span class="line">            val data = receivers.take()</span><br><span class="line">            if (data == PoisonPill) &#123;</span><br><span class="line">              // Put PoisonPill back so that other MessageLoops can see it.</span><br><span class="line">              receivers.offer(PoisonPill)</span><br><span class="line">              return</span><br><span class="line">            &#125;</span><br><span class="line">            data.inbox.process(Dispatcher.this)</span><br><span class="line">          &#125; catch &#123;</span><br><span class="line">            case NonFatal(e) =&gt; logError(e.getMessage, e)</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125; catch &#123;</span><br><span class="line">        case ie: InterruptedException =&gt; // exit</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>MessageLoop从receiver中取下一个endpointdata，调用其所拥有的inbox#process处理，在process方法里调用endpoint的receive(OnewayMessage这种不需要回复的request调用)或者receiveAndReply(RpcMessage这种需要回复的消息调用)来根据消息作出不同处理。</p>
+<h4 id="2-1-2-客户端"><a href="#2-1-2-客户端" class="headerlink" title="2.1.2 客户端"></a>2.1.2 客户端</h4><p>客户端通过RpcEndpointRef#send或者ask向这个rpcendpointref代表的远程服务发送请求，RpcEndpointRef是一个抽象类，使用NettyRpcEndpointRef实例化，以NettyRpcEndpointRef#send为例（send发送的消息不需要回复）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">override def send(message: Any): Unit = &#123;</span><br><span class="line">    require(message != null, &quot;Message is null&quot;)</span><br><span class="line">    nettyEnv.send(new RequestMessage(nettyEnv.address, this, message))</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>将消息包装成RequestMessage，调用netty#send进入NettyRpcEnv#send如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">private[netty] def send(message: RequestMessage): Unit = &#123;</span><br><span class="line">    val remoteAddr = message.receiver.address</span><br><span class="line">     </span><br><span class="line">    // 请求的远程地址就是本地地址，直接使用dispatcher递交到本地endpointref的outbox处理</span><br><span class="line">    if (remoteAddr == address) &#123;</span><br><span class="line">      // Message to a local RPC endpoint.</span><br><span class="line">      try &#123;</span><br><span class="line">        dispatcher.postOneWayMessage(message)</span><br><span class="line">      &#125; catch &#123;</span><br><span class="line">        case e: RpcEnvStoppedException =&gt; logWarning(e.getMessage)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">      // Message to a remote RPC endpoint.</span><br><span class="line">      postToOutbox(message.receiver, OneWayOutboxMessage(message.serialize(this)))</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>调用<code>postToOutBox(receiver: NettyRpcEndpointRef, message: OutboxMessage）</code>,对于使用send发送到远端的消息则创建OneWayOutboxMessage。关于postToOutBox的message参数，其类型OutboxMessage是一个抽象类，结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">private[netty] sealed trait OutboxMessage &#123;</span><br><span class="line"></span><br><span class="line">  def sendWith(client: TransportClient): Unit</span><br><span class="line"></span><br><span class="line">  def onFailure(e: Throwable): Unit</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最后的发送是调用sendWith发送，他有两个实现类：</p>
+<ul>
+<li>OneWayOutboxMessage， RpcEndpointRef#send发送的是此类消息，不用回复。</li>
+<li>RpcOutboxMessage， RpcEndpointRef#ask，askSync发送的是此类消息，需要等待回复。</li>
+</ul>
+<p>postToOutbox会根据接收地址在outboxes中检索出对应的outbox，调用outbox#send将消息完成发送。</p>
+<p><strong>TransportClient</strong><br>OutboxMessage#sendWith(client:TransportClient)发送消息是通过TransportClient发送的，TransportClient是通过TransportClientFactory创建的，注册的handler与server一样。但是对于发送出去的消息只经过MessageEncoder#encode处理过一次。</p>
+<p><strong>RpcEndpointRef send 和ask的区别</strong><br>send和ask的区别前文多次提到，send发送完直接返回不需要回复，和ask是需要对端回复的，下面是NettyRpcEndpointRef的send和ask方法的签名：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">override def ask[T: ClassTag](message: Any, timeout: RpcTimeout): Future[T] = &#123;</span><br><span class="line">   nettyEnv.ask(new RequestMessage(nettyEnv.address, this, message), timeout)</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> override def send(message: Any): Unit = &#123;</span><br><span class="line">   require(message != null, &quot;Message is null&quot;)</span><br><span class="line">   nettyEnv.send(new RequestMessage(nettyEnv.address, this, message))</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>ask返回了Future用来异步的获取返回值，进入NettyRpcEnv#ask返回就会知道ask的message参数会被封装成RpcOutboxMessage，下面是RpcOutboxMessage#sendWith的实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">override def sendWith(client: TransportClient): Unit = &#123;</span><br><span class="line">   this.client = client</span><br><span class="line">   this.requestId = client.sendRpc(content, this)</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>调用<code>TransportClient#sendRpc(ByteBuffer message, RpcResponseCallback callback)</code>,接收一个callback作为本次rpc请求有返回结果是毁掉，返回的是一个标识一次rpc的独一无二的requestid。 下面是<code>TransportClient#sendRpc(ByteBuffer message, RpcResponseCallback callback)</code>的部分代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">public long sendRpc(ByteBuffer message, RpcResponseCallback callback) &#123;</span><br><span class="line">    long startTime = System.currentTimeMillis();</span><br><span class="line">    if (logger.isTraceEnabled()) &#123;</span><br><span class="line">      logger.trace(&quot;Sending RPC to &#123;&#125;&quot;, getRemoteAddress(channel));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    long requestId = Math.abs(UUID.randomUUID().getLeastSignificantBits());</span><br><span class="line">    handler.addRpcRequest(requestId, callback);</span><br><span class="line"></span><br><span class="line">    channel.writeAndFlush(new RpcRequest(requestId, new NioManagedBuffer(message)))</span><br><span class="line">        .addListener(future -&gt; &#123;</span><br><span class="line">         ...</span><br><span class="line">         ... </span><br><span class="line">         ...</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">    return requestId;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>上面代码中为本次rpc请求生成了唯一的requestId，然后调用writeAndFlush发送消息。还调用handler.addRpcRequest,这个handler是TransportResponseHandler的实例，TransportResponseHandler#addRpcRequest()如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">public void addRpcRequest(long requestId, RpcResponseCallback callback) &#123;</span><br><span class="line">    updateTimeOfLastRequest();</span><br><span class="line">    // 将生成的requestId ，callback映射保存下来</span><br><span class="line">    outstandingRpcs.put(requestId, callback);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>(requestId,callBack)映射被保存下来，显然是等待对端回复requestId之后，调用callBack用，前面图中回复经过Decode之后，流进TransportResponseHandler，在TransportResponseHandler#handle中处理decode之后的数据，handle中处理RpcResponse如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">public void handle(ResponseMessage message) throws Exception &#123;</span><br><span class="line">    if (message instanceof ChunkFetchSuccess) &#123;</span><br><span class="line">       ...</span><br><span class="line">       ...</span><br><span class="line">    &#125; else if (message instanceof ChunkFetchFailure) &#123;</span><br><span class="line">       ... </span><br><span class="line">       ...</span><br><span class="line">    &#125; else if (message instanceof RpcResponse) &#123;</span><br><span class="line">      RpcResponse resp = (RpcResponse) message;</span><br><span class="line">      RpcResponseCallback listener = outstandingRpcs.get(resp.requestId);</span><br><span class="line">      if (listener == null) &#123;</span><br><span class="line">        logger.warn(&quot;Ignoring response for RPC &#123;&#125; from &#123;&#125; (&#123;&#125; bytes) since it is not outstanding&quot;,</span><br><span class="line">          resp.requestId, getRemoteAddress(channel), resp.body().size());</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        outstandingRpcs.remove(resp.requestId);</span><br><span class="line">        try &#123;</span><br><span class="line">          listener.onSuccess(resp.body().nioByteBuffer());</span><br><span class="line">        &#125; finally &#123;</span><br><span class="line">          resp.body().release();</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; else if (message instanceof RpcFailure) &#123;</span><br><span class="line">      ... </span><br><span class="line">      ...</span><br><span class="line">    &#125; else if (message instanceof StreamResponse) &#123;</span><br><span class="line">       ...</span><br><span class="line">       ...</span><br><span class="line">    &#125; else if (message instanceof StreamFailure) &#123;</span><br><span class="line">       ...</span><br><span class="line">       ...</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>处理RpcResponse的分支中，根据requestId取出callback，然后调用onSuccess，填充Future的结果，关于这个callback是何处生成然后被传递的，最初RpcEndpointRef#ask方法调用的NettyRpcEnv#ask方法。</p>
+<p><strong> Scala的Future 和Promise</strong><br>上面介绍ask方法时，结果是异步返回的，ask只是返回了一个Future，这是使用scala异步编程的一种方式，下面是介绍Future和Promise的用法的文章</p>
+<ol>
+<li><a href="http://udn.yyuap.com/doc/guides-to-scala-book/chp9-promises-and-futures-in-practice.html" target="_blank" rel="noopener">Scala Future 和 Promise</a></li>
+</ol>
 
           
         
